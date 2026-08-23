@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { invoiceUpdateSchema } from "@/lib/validation";
 import { cancelPendingForInvoice, syncScheduleForInvoice } from "@/lib/engine";
+import { effectivePlan } from "@/lib/plans";
 import { logEvent } from "@/lib/analytics";
 
 type Params = { params: Promise<{ id: string }> };
@@ -81,6 +82,52 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     console.error("invoice update failed", err);
     return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
   }
+}
+
+export async function POST(_req: NextRequest, { params }: Params) {
+  // Clone an invoice: same customer/amount/link, new number suffix, due in 30 days.
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id } = await params;
+
+  const source = await db.invoice.findFirst({ where: { id, userId: user.id }, include: { customer: true } });
+  if (!source) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const sub = user.subscription;
+  const plan = effectivePlan((sub?.plan as never) ?? "free", sub?.status ?? "active", user.trialEndsAt);
+  const activeCount = await db.invoice.count({ where: { userId: user.id, status: "active" } });
+  if (activeCount >= plan.maxActiveInvoices) {
+    return NextResponse.json({ error: `Plan limit reached (${plan.maxActiveInvoices} active invoices).`, upgradeRequired: true }, { status: 402 });
+  }
+
+  const now = new Date();
+  let number = `${source.number}-2`;
+  for (let i = 2; i < 50; i++) {
+    number = i === 2 ? `${source.number}-2` : `${source.number}-${i}`;
+    const exists = await db.invoice.findUnique({ where: { userId_number: { userId: user.id, number } }, select: { id: true } });
+    if (!exists) break;
+  }
+
+  const issuedAt = new Date(now.getTime() - 14 * 86400000);
+  const dueAt = new Date(now.getTime() + 30 * 86400000);
+
+  const invoice = await db.invoice.create({
+    data: {
+      userId: user.id,
+      customerId: source.customerId,
+      number,
+      amountCents: source.amountCents,
+      currency: source.currency,
+      issuedAt,
+      dueAt,
+      paymentUrl: source.paymentUrl,
+      source: "manual",
+      status: "active",
+    },
+  });
+  await syncScheduleForInvoice(invoice.id);
+  logEvent(user.id, "invoice_created", { invoiceId: invoice.id, source: "clone" });
+  return NextResponse.json({ invoice }, { status: 201 });
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {

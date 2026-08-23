@@ -101,6 +101,19 @@ export function InvoiceActions({
     );
   }
 
+  async function clone() {
+    setBusy("clone");
+    const res = await fetch(`/api/invoices/${invoiceId}`, { method: "POST" });
+    setBusy(null);
+    if (res.ok) {
+      router.push("/app/invoices");
+      router.refresh();
+    } else {
+      const d = await res.json().catch(() => ({}));
+      setError(d.error ?? "Could not clone.");
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
@@ -125,6 +138,9 @@ export function InvoiceActions({
           </button>
         )}
         <button onClick={() => setEditing(true)} className={btn.secondary}>Edit</button>
+        <button onClick={clone} disabled={busy !== null} className={btn.secondary} title="Create a copy due in 30 days — for recurring billing">
+          ⧉ Clone for next month
+        </button>
         <button onClick={remove} disabled={busy !== null} className={btn.danger}>Delete</button>
       </div>
 

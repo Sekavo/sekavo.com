@@ -26,12 +26,14 @@ export async function POST(req: NextRequest) {
 
     const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 3600 * 1000);
     const passwordHash = await hashPassword(parsed.data.password);
+    const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
     const user = await db.user.create({
       data: {
         email,
         name: parsed.data.name,
         businessName: parsed.data.businessName ?? null,
         passwordHash,
+        isAdmin: adminEmails.includes(email),
         settings: {
           create: {
             senderName: parsed.data.name,

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { buildTemplateVars } from "@/lib/engine";
+import { renderTemplate, sequenceFor } from "@/lib/email/templates";
 import { Card, StatusBadge, Badge, btn } from "@/components/ui";
 import { InvoiceActions } from "@/components/invoice-actions";
 
@@ -33,6 +35,48 @@ export default async function InvoiceDetailPage({ params }: DetailPageProps) {
   if (!invoice) notFound();
 
   const daysLate = Math.floor((Date.now() - invoice.dueAt.getTime()) / 86400000);
+
+  // Live preview of what a pending step will say when it fires
+  const fullForPreview = {
+    id: invoice.id,
+    userId: invoice.userId,
+    number: invoice.number,
+    amountCents: invoice.amountCents,
+    currency: invoice.currency,
+    dueAt: invoice.dueAt,
+    status: invoice.status,
+    chasingEnabled: invoice.chasingEnabled,
+    paymentUrl: invoice.paymentUrl,
+    customer: { name: invoice.customer.name, email: invoice.customer.email },
+    user: {
+      id: user.id,
+      email: user.email,
+      businessName: user.businessName,
+      settings: user.settings
+        ? {
+            senderName: user.settings.senderName,
+            senderEmail: user.settings.senderEmail,
+            replyTo: user.settings.replyTo,
+            ccOwner: user.settings.ccOwner,
+            signature: user.settings.signature,
+            businessName: user.settings.businessName,
+            lateFeePolicy: user.settings.lateFeePolicy,
+            sequence: user.settings.sequence,
+            catchUpOnLate: user.settings.catchUpOnLate,
+            pauseOnReplyDays: user.settings.pauseOnReplyDays,
+          }
+        : null,
+      subscription: user.subscription ? { plan: user.subscription.plan, status: user.subscription.status } : null,
+      trialEndsAt: user.trialEndsAt,
+    },
+  };
+  const steps = sequenceFor(user.settings);
+  function previewFor(stepIndex: number): string | null {
+    const step = steps[stepIndex];
+    if (!step) return null;
+    const { vars } = buildTemplateVars(fullForPreview);
+    return `Subject: ${renderTemplate(step.subjectTemplate, vars)}\n\n${renderTemplate(step.bodyTemplate, vars).trim()}`;
+  }
 
   return (
     <div className="space-y-6">
@@ -88,6 +132,12 @@ export default async function InvoiceDetailPage({ params }: DetailPageProps) {
                     <details className="mt-1.5">
                       <summary className="cursor-pointer text-xs font-medium text-indigo-600 hover:underline">View email</summary>
                       <pre className="mt-2 whitespace-pre-wrap rounded-lg bg-neutral-50 p-3 text-xs leading-relaxed text-neutral-700">{e.body || "(content rendered at send time)"}</pre>
+                    </details>
+                  )}
+                  {e.status === "pending" && (
+                    <details className="mt-1.5">
+                      <summary className="cursor-pointer text-xs font-medium text-indigo-600 hover:underline">Preview next email</summary>
+                      <pre className="mt-2 whitespace-pre-wrap rounded-lg bg-indigo-50/50 p-3 text-xs leading-relaxed text-neutral-700">{previewFor(e.stepIndex)}</pre>
                     </details>
                   )}
                 </li>
