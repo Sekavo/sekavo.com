@@ -7,6 +7,7 @@ import { escapeCsvCell } from "../src/lib/csv";
 import { replyDedupKey, renderClean } from "../src/lib/engine";
 import { normalizeInboundPayload, verifySvixSignature } from "../src/lib/inbound";
 import { createHmac } from "crypto";
+import { readFileSync, existsSync } from "fs";
 
 let pass = 0;
 let fail = 0;
@@ -149,6 +150,29 @@ eq("object to-addresses handled", normalizeInboundPayload({ from: "a@b.test", to
 check("missing from → null", normalizeInboundPayload({ to: ["x@y.z"] }) === null);
 check("missing to → null", normalizeInboundPayload({ from: "x@y.z" }) === null);
 check("garbage → null", normalizeInboundPayload(null) === null);
+
+// ---------- deployment config guard ----------
+// Vercel Hobby allows only daily crons. The worker must be triggered by an
+// EXTERNAL scheduler instead; if vercel.json is ever re-added (e.g. after
+// upgrading to Pro), it must not silently reintroduce a sub-daily schedule.
+const vercelCfgPath = "vercel.json";
+if (!existsSync(vercelCfgPath)) {
+  check("no vercel.json in repo (external scheduler owns worker frequency)", true);
+} else {
+  try {
+    const cfg = JSON.parse(readFileSync(vercelCfgPath, "utf8"));
+    const crons = Array.isArray(cfg.crons) ? cfg.crons : [];
+    const subDaily = crons.filter((c: { schedule?: string }) => {
+      const f = typeof c.schedule === "string" ? c.schedule.trim().split(/\s+/) : [];
+      return f.length === 5 && (f[0] === "*" || f[0].startsWith("*/"));
+    });
+    check("vercel.json declares no sub-daily cron (Hobby-safe)", subDaily.length === 0, JSON.stringify(subDaily));
+  } catch {
+    check("vercel.json parseable", false);
+  }
+}
+check("tick endpoint file present", existsSync("src/app/api/cron/tick/route.ts"));
+check("worker loop module present", existsSync("src/lib/worker.ts"));
 
 console.log(`\nUnit: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

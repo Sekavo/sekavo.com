@@ -14,7 +14,7 @@ No real secrets live in this repository.
 | Shape | Database | Worker | Notes |
 |---|---|---|---|
 | **A. Single-node host** (Railway / Fly.io / VPS) | SQLite on a mounted volume (`file:/app/data/prod.db`) | Built-in `node-cron` (do **not** set `DISABLE_INTERNAL_CRON`) | Simplest. One process owns writes; ideal for first customers. |
-| **B. Serverless** (Vercel) | PostgreSQL (Neon/Supabase/Vercel Postgres) via `prisma/schema.postgres.prisma` | Platform cron → `/api/cron/tick` (`vercel.json` included; 1-minute schedules need a paid Vercel plan — otherwise use an external pinger) | Required because serverless filesystems are ephemeral. |
+| **B. Serverless** (Vercel, incl. Hobby) | PostgreSQL (Neon/Supabase/Vercel Postgres) via `prisma/schema.postgres.prisma` | External scheduler → `/api/cron/tick` every minute (see §7) | Required because serverless filesystems are ephemeral. |
 
 Both shapes ship in this repo. Do not mix: serverless + SQLite will lose data.
 
@@ -107,12 +107,34 @@ upgrade buttons explain that checkout isn't configured.
 
 - **[AUTOMATED]** `/api/cron/tick` accepts `Authorization: Bearer <CRON_SECRET>`
   or `?secret=<CRON_SECRET>`; concurrent invocations are safe (atomic row
-  claims); claims stuck >15 min are requeued automatically.
+  claims); claims stuck >15 min are requeued automatically. A unit test guards
+  against accidentally re-adding a Hobby-incompatible `vercel.json` cron.
 - **[HUMAN]** Choose ONE scheduler:
-  - Single-node host: nothing to do (`node-cron` runs in-process).
-  - Vercel Pro: `vercel.json`'s every-minute schedule activates on deploy.
-  - Vercel Hobby / anywhere else: point cron-job.org (or similar) at
-    `https://<APP_URL>/api/cron/tick?secret=<CRON_SECRET>` every minute.
+
+  **Single-node host** — nothing to do; the in-process scheduler runs every
+  minute on boot.
+
+  **Serverless (Vercel Hobby included) — external free scheduler.** The repo
+  intentionally ships no `vercel.json`; create one job at your provider:
+
+  | Setting | Value |
+  |---|---|
+  | URL | `https://<APP_URL>/api/cron/tick?secret=<CRON_SECRET>` |
+  | Method | `GET` (or `POST` with header `Authorization: Bearer <CRON_SECRET>`) |
+  | Frequency | every 1 minute (5 min also works; chases fire within one tick of their scheduled time) |
+  | Env var required on Vercel | `CRON_SECRET` (+ all vars from `.env.example`) |
+
+  Providers that work well: cron-job.org, EasyCron, GitHub Actions
+  (`schedule:` + curl), UptimeRobot-style pingers.
+
+  **Vercel Pro alternative:** restore a minute-level platform cron by adding:
+
+  ```json
+  { "crons": [{ "path": "/api/cron/tick", "schedule": "* * * * *" }] }
+  ```
+
+  as `vercel.json`. A unit test permits this file but fails if it declares a
+  sub-daily schedule without a Pro plan being assumed.
 
 ## 8. Environment variables (production)
 
