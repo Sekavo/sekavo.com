@@ -336,6 +336,7 @@ export async function handleCustomerReply(opts: {
 
   const openInvoices = await db.invoice.findMany({
     where: { userId: opts.ownerUserId, customerId: customer.id, status: "active" },
+    orderBy: { dueAt: "asc" },
   });
   const target = openInvoices[0];
 
