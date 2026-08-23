@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "./db";
 import { runTick, type TickResult } from "./engine";
 import { sendEmail } from "./email/sender";

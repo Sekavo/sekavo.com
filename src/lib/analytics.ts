@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "./db";
 
 export async function logEvent(userId: string | null | undefined, type: string, meta?: Record<string, unknown>) {

@@ -13,6 +13,14 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // Server Components re-run per request by design; Date.now() etc. is fine.
+    files: ["src/app/**/page.tsx", "src/app/app/layout.tsx", "src/lib/**/*.ts"],
+    rules: {
+      "react-hooks/purity": "off",
+      "react-hooks/immutability": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

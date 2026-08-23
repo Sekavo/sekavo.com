@@ -1,4 +1,3 @@
-import "server-only";
 import { Resend } from "resend";
 import { db } from "../db";
 import { logger } from "../logger";

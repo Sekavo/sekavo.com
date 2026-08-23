@@ -1,4 +1,4 @@
-import type { UserSettings } from "@prisma/client";
+
 
 export interface ChaseStep {
   offsetDays: number; // relative to due date (negative = before due)

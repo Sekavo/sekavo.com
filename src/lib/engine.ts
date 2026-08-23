@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "./db";
 import { logger } from "./logger";
 import { logEvent } from "./analytics";
@@ -181,7 +180,7 @@ function duePlus(due: Date, offsetDays: number): Date {
   return new Date(due.getTime() + offsetDays * 24 * 60 * 60 * 1000);
 }
 
-export function buildTemplateVars(inv: InvoiceFull, opts?: { includeBrandingFooter?: boolean }): { vars: TemplateVars; branding: boolean } {
+export function buildTemplateVars(inv: InvoiceFull): { vars: TemplateVars; branding: boolean } {
   const s = inv.user.settings;
   const daysLate = Math.floor((Date.now() - inv.dueAt.getTime()) / (24 * 3600 * 1000));
   const daysEarly = daysLate < 0 ? Math.abs(daysLate) : 0;
