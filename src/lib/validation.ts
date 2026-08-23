@@ -39,6 +39,7 @@ export const settingsUpdateSchema = z.object({
   lateFeePolicy: z.string().max(300).optional(),
   catchUpOnLate: z.boolean().optional(),
   pauseOnReplyDays: z.number().int().min(1).max(30).optional(),
+  defaultPaymentUrl: z.string().url().max(500).optional().or(z.literal("")),
   onboardingDone: z.boolean().optional(),
   sequence: z
     .array(

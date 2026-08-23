@@ -8,12 +8,22 @@ function iso(offsetDays: number): string {
   return new Date(Date.now() + offsetDays * 86_400_000).toISOString().slice(0, 10);
 }
 
-export function NewInvoiceForm({ defaultNewOpen }: { defaultNewOpen?: boolean }) {
+export function NewInvoiceForm({
+  defaultNewOpen,
+  defaultPaymentUrl = "",
+  canImportCsv,
+}: {
+  defaultNewOpen?: boolean;
+  defaultPaymentUrl?: string;
+  canImportCsv?: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(Boolean(defaultNewOpen));
   const [error, setError] = useState<string | null>(null);
   const [upgrade, setUpgrade] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [createdNumber, setCreatedNumber] = useState("");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -42,6 +52,8 @@ export function NewInvoiceForm({ defaultNewOpen }: { defaultNewOpen?: boolean })
       setUpgrade(Boolean(data.upgradeRequired));
       return;
     }
+    setCreatedId(data.invoice?.id ?? null);
+    setCreatedNumber(data.invoice?.number ?? "");
     setOpen(false);
     router.refresh();
   }
@@ -51,6 +63,20 @@ export function NewInvoiceForm({ defaultNewOpen }: { defaultNewOpen?: boolean })
       <button onClick={() => setOpen(true)} className={btn.primary}>
         Add invoice
       </button>
+    );
+  }
+
+  if (!open && createdId) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 border border-pine-200 bg-pine-50 px-4 py-3 text-sm text-pine-900">
+        <span>
+          <strong className="font-semibold">{createdNumber || "Invoice"} added</strong> — chase sequence scheduled.
+        </span>
+        <span className="flex items-center gap-4">
+          <a href={`/app/invoices/${createdId}`} className="font-semibold underline underline-offset-2">View schedule →</a>
+          <button onClick={() => { setCreatedId(null); setOpen(true); }} className="font-medium text-pine-700 hover:underline">Add another</button>
+        </span>
+      </div>
     );
   }
 
@@ -80,7 +106,7 @@ export function NewInvoiceForm({ defaultNewOpen }: { defaultNewOpen?: boolean })
           </select>
         </Field>
         <Field label="Payment link · optional" htmlFor="paymentUrl" hint="Added to every reminder as a one-click pay button.">
-          <input id="paymentUrl" name="paymentUrl" type="url" className={input} placeholder="https://buy.stripe.com/…" />
+          <input id="paymentUrl" name="paymentUrl" type="url" defaultValue={defaultPaymentUrl} className={input} placeholder="https://buy.stripe.com/…" />
         </Field>
         <Field label="Issue date" htmlFor="issuedAt">
           <input id="issuedAt" name="issuedAt" type="date" required defaultValue={iso(-14)} className={cn(input, "tnum")} />

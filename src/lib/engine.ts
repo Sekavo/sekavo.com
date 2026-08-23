@@ -6,6 +6,7 @@ import { sendEmail } from "./email/sender";
 import { renderTemplate, sequenceFor, type TemplateVars } from "./email/templates";
 import { effectivePlan } from "./plans";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
 const BRANDING_FOOTER = "\n\n—\nChased automatically by Paidhound. Stop chasing, start getting paid.";
 /** Delay before a catch-up email fires on overdue invoices — gives users a window to pause. */
 export const CATCHUP_DELAY_MS = 60 * 60 * 1000;
@@ -111,7 +112,10 @@ export async function getInvoiceFull(invoiceId: string): Promise<InvoiceFull | n
  *   delay (CATCHUP_DELAY_MS), giving the user a window to review or pause.
  * - Editing an invoice resyncs: stale steps are cancelled/recreated.
  */
-export async function syncScheduleForInvoice(invoiceId: string): Promise<void> {
+export async function syncScheduleForInvoice(
+  invoiceId: string,
+  opts?: { reanchor?: boolean }
+): Promise<void> {
   const inv = await getInvoiceFull(invoiceId);
   if (!inv) return;
 
@@ -126,12 +130,56 @@ export async function syncScheduleForInvoice(invoiceId: string): Promise<void> {
   const settings = inv.user.settings;
   const steps = sequenceFor(settings);
   const now = Date.now();
+  const reanchor = opts?.reanchor ?? false;
 
-  // Determine which past step is the latest one that should fire on catch-up
+  // Catch-up tone selection: match the customer's actual lateness, not the
+  // most severe template. A 9-day-late invoice gets the +7 nudge as its first
+  // contact — never a final notice out of nowhere.
+  const daysLateFloor = Math.floor((now - inv.dueAt.getTime()) / DAY_MS);
   let catchupStepIdx = -1;
   if (settings?.catchUpOnLate ?? true) {
+    let bestByLateness = -1;
     for (let i = 0; i < steps.length; i++) {
-      if (duePlus(inv.dueAt, steps[i].offsetDays).getTime() <= now) catchupStepIdx = i;
+      const anchorPast = duePlus(inv.dueAt, steps[i].offsetDays).getTime() <= now;
+      if (!anchorPast) continue;
+      if (steps[i].offsetDays <= daysLateFloor && i > bestByLateness) bestByLateness = i;
+    }
+    catchupStepIdx = bestByLateness >= 0 ? bestByLateness : (() => {
+      let latest = -1;
+      for (let i = 0; i < steps.length; i++) {
+        if (duePlus(inv.dueAt, steps[i].offsetDays).getTime() <= now) latest = i;
+      }
+      return latest;
+    })();
+  }
+
+  /** The date step `i` should fire on, given the current due date. */
+  const desiredFor = (i: number): { date: Date; skipped: boolean } => {
+    const plannedFor = duePlus(inv.dueAt, steps[i].offsetDays);
+    if (plannedFor.getTime() <= now) {
+      if (i === catchupStepIdx && !existing.some((e) => e.stepIndex === i && e.status === "sent")) {
+        return { date: new Date(now + CATCHUP_DELAY_MS), skipped: false };
+      }
+      return { date: plannedFor, skipped: true };
+    }
+    return { date: plannedFor, skipped: false };
+  };
+
+  // Re-anchoring (due-date edit): move every queued step to its newly correct
+  // slot — past slots are cancelled as superseded so nothing retro-fires.
+  if (reanchor) {
+    for (const [idx, email] of pendingByStep) {
+      if (!steps[idx]) continue;
+      const want = desiredFor(idx);
+      if (want.skipped) {
+        await db.scheduledEmail.update({
+          where: { id: email.id },
+          data: { status: "cancelled", error: "due date changed — step no longer applicable" },
+        });
+        pendingByStep.delete(idx);
+      } else if (email.plannedFor.getTime() !== want.date.getTime()) {
+        await db.scheduledEmail.update({ where: { id: email.id }, data: { plannedFor: want.date } });
+      }
     }
   }
 
@@ -141,28 +189,22 @@ export async function syncScheduleForInvoice(invoiceId: string): Promise<void> {
     const alreadySent = existing.some((e) => e.stepIndex === i && e.status === "sent");
     if (alreadySent) continue;
 
-    const plannedFor = duePlus(inv.dueAt, step.offsetDays);
-    const isPast = plannedFor.getTime() <= now;
+    const desired = desiredFor(i);
 
-    let effectivePlannedFor = plannedFor;
-    if (isPast) {
-      if (i === catchupStepIdx) {
-        effectivePlannedFor = new Date(now + CATCHUP_DELAY_MS); // safety window
-      } else {
-        await db.scheduledEmail.create({
-          data: {
-            invoiceId,
-            stepIndex: i,
-            stepLabel: step.label,
-            subject: "",
-            body: "",
-            plannedFor,
-            status: "skipped",
-            error: "date passed before scheduling",
-          },
-        });
-        continue;
-      }
+    if (desired.skipped) {
+      await db.scheduledEmail.create({
+        data: {
+          invoiceId,
+          stepIndex: i,
+          stepLabel: step.label,
+          subject: "",
+          body: "",
+          plannedFor: desired.date,
+          status: "skipped",
+          error: "date passed before scheduling",
+        },
+      });
+      continue;
     }
 
     await db.scheduledEmail.create({
@@ -172,7 +214,7 @@ export async function syncScheduleForInvoice(invoiceId: string): Promise<void> {
         stepLabel: step.label,
         subject: "",
         body: "",
-        plannedFor: effectivePlannedFor,
+        plannedFor: desired.date,
         status: "pending",
       },
     });
@@ -191,11 +233,21 @@ function duePlus(due: Date, offsetDays: number): Date {
   return new Date(due.getTime() + offsetDays * 24 * 60 * 60 * 1000);
 }
 
+export function renderClean(text: string): string {
+  return text
+    .split("\n")
+    .map((l) => l.replace(/[ \t]+$/g, ""))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n") // collapse gaps left by empty optional blocks
+    .trimEnd();
+}
+
 export function buildTemplateVars(inv: InvoiceFull): { vars: TemplateVars; branding: boolean } {
   const s = inv.user.settings;
   const daysLate = Math.floor((Date.now() - inv.dueAt.getTime()) / (24 * 3600 * 1000));
   const daysEarly = daysLate < 0 ? Math.abs(daysLate) : 0;
-  const firstName = inv.customer.name.split(" ")[0] || inv.customer.name;
+  const fullName = inv.customer.name.trim();
+  const firstName = fullName.split(/\s+/)[0] || fullName;
   const businessName = s?.businessName || inv.user.businessName || "";
   const removeBranding =
     effectivePlan(
@@ -205,7 +257,7 @@ export function buildTemplateVars(inv: InvoiceFull): { vars: TemplateVars; brand
     ).removeBranding;
 
   const vars: TemplateVars = {
-    customer_name: firstName,
+    customer_name: fullName,
     first_name: firstName,
     invoice_number: inv.number,
     amount: fmtMoney(inv.amountCents, inv.currency),
@@ -331,8 +383,8 @@ export async function runTick(now = new Date()): Promise<TickResult> {
     const { vars, branding } = buildTemplateVars(inv);
 
     // Re-render at send time so amounts/dates/days_late are current
-    const subject = renderTemplate(step.subjectTemplate, vars);
-    let body = renderTemplate(step.bodyTemplate, vars);
+    const subject = renderClean(renderTemplate(step.subjectTemplate, vars));
+    let body = renderClean(renderTemplate(step.bodyTemplate, vars));
     if (branding) body += BRANDING_FOOTER;
 
     const res = await sendEmail({

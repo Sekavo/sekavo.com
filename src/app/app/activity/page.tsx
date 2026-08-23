@@ -76,7 +76,12 @@ export default async function ActivityPage({
       </nav>
 
       {events.length === 0 ? (
-        <p className="py-12 text-center text-sm text-ink-faint">Nothing logged yet.</p>
+        <div className="border border-dashed border-line-strong bg-white px-6 py-12 text-center">
+          <p className="font-display text-[17px] font-semibold text-ink">No activity yet</p>
+          <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-ink-soft">
+            Once an invoice is being chased, every email sent and every customer reply shows up here.
+          </p>
+        </div>
       ) : (
         <div className="space-y-8">
           {[...groups.entries()].map(([day, list]) => (

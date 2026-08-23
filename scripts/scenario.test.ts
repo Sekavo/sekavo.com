@@ -242,6 +242,42 @@ async function main() {
     await db.user.delete({ where: { id: u.id } });
   }
 
+  // ---- 2b. Catch-up tone matches actual lateness (9 days late → +7 nudge, never final) ----
+  {
+    const u = await makeTenant();
+    const inv = await addInvoice(u.id, { dueDays: -9 });
+    const pending = await db.scheduledEmail.findMany({ where: { invoiceId: inv.id, status: "pending" } });
+    check("9-day-late catch-up is the gentle nudge", pending.length >= 1 && pending[0].stepLabel.toLowerCase().includes("nudge"), pending.map((p) => p.stepLabel).join(","));
+    check("later steps still queued after nudge", pending.some((p) => p.stepLabel.toLowerCase().includes("final")));
+    await db.user.delete({ where: { id: u.id } });
+  }
+
+  // ---- 11b. Due-date edit re-anchors remaining steps; plain resync preserves them ----
+  {
+    const u = await makeTenant();
+    const inv = await addInvoice(u.id, { dueDays: 20 });
+    const before = await db.scheduledEmail.findMany({ where: { invoiceId: inv.id, status: "pending" } });
+    check("future invoice schedules full ladder", before.length >= 4, `n=${before.length}`);
+
+    // Plain resync (e.g. amount edit): dates untouched
+    await syncScheduleForInvoice(inv.id);
+    const afterPlain = await db.scheduledEmail.findMany({ where: { invoiceId: inv.id, status: "pending" } });
+    const sameDates = before.every((b) => afterPlain.find((a) => a.stepIndex === b.stepIndex && a.plannedFor.getTime() === b.plannedFor.getTime()));
+    check("plain resync preserves scheduled dates", sameDates);
+
+    // Due-date edit with reanchor: every pending moves to new anchors
+    const newDue = new Date(Date.now() + 40 * DAY);
+    await db.invoice.update({ where: { id: inv.id }, data: { dueAt: newDue } });
+    await syncScheduleForInvoice(inv.id, { reanchor: true });
+    const afterRe = await db.scheduledEmail.findMany({ where: { invoiceId: inv.id, status: "pending" } });
+    const anchored = afterRe.every((a) => {
+      const expected = new Date(newDue.getTime() + DEFAULT_SEQUENCE[a.stepIndex].offsetDays * DAY);
+      return Math.abs(expected.getTime() - a.plannedFor.getTime()) < 2000;
+    });
+    check("due-date edit re-anchors all queued steps", anchored && afterRe.length === before.length);
+    await db.user.delete({ where: { id: u.id } });
+  }
+
   // ---- 12. Failed delivery path (invalid provider key → marked failed, not lost silently) ----
   {
     const u = await makeTenant();

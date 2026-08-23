@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { billingEnabled } from "@/lib/billing/stripe";
 import { getCurrentUser } from "@/lib/auth";
 import { effectivePlan } from "@/lib/plans";
 import { Eyebrow, PageHeader, Surface } from "@/components/ui";
@@ -72,9 +73,9 @@ export default async function BillingPage() {
           </div>
         </Surface>
 
-        <PlanTable currentPlan={trialing ? "__trial__" : (sub?.plan ?? "free")} />
+        <PlanTable currentPlan={trialing ? "__trial__" : (sub?.plan ?? "free")} billingEnabled={billingEnabled()} />
 
-        {!process.env.NEXT_PUBLIC_BILLING_CONFIGURED && (
+        {!billingEnabled() && (
           <p className="border border-dashed border-line-strong px-4 py-3 text-[13px] leading-relaxed text-ink-soft">
             Checkout is disabled on this deployment — set <code className="bg-paper-sunken px-1 font-mono text-xs">STRIPE_SECRET_KEY</code> and{" "}
             <code className="bg-paper-sunken px-1 font-mono text-xs">STRIPE_PRICE_*</code> to enable plan changes.

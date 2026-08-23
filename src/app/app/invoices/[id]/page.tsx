@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { buildTemplateVars, captureAddressFor } from "@/lib/engine";
+import { buildTemplateVars, captureAddressFor, renderClean } from "@/lib/engine";
 import { renderTemplate, sequenceFor } from "@/lib/email/templates";
 import {
   Eyebrow, Money, StatusLine, cn, invoiceStatusView, shortDate, relTime,
@@ -71,7 +71,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
     const step = steps[stepIndex];
     if (!step) return null;
     const { vars } = buildTemplateVars(previewInvoice);
-    return renderTemplate(step.bodyTemplate, vars).trim();
+    return renderClean(renderTemplate(step.bodyTemplate, vars));
   }
 
   const senderName = user.settings?.businessName || user.businessName || user.name;
@@ -156,7 +156,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                 const mark = stepMark[(e.status as StepState) in stepMark ? (e.status as StepState) : "cancelled"];
                 const isLast = idx === invoice.scheduledEmails.length - 1;
                 const when = e.sentAt ?? e.plannedFor;
-                const body = e.body ?? previewFor(e.stepIndex) ?? "";
+                // Pending rows persist an empty body; fall through to a live preview
+                const body = e.body || previewFor(e.stepIndex) || "";
                 const subject =
                   e.subject ||
                   (() => {
@@ -165,7 +166,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                     try {
                       // reuse rendered preview's first line heuristic is fragile; render subject directly
                       const { vars } = buildTemplateVars(previewInvoice);
-                      return renderTemplate(step.subjectTemplate, vars);
+                      return renderClean(renderTemplate(step.subjectTemplate, vars));
                     } catch {
                       return "";
                     }

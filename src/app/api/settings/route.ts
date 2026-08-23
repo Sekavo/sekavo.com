@@ -27,6 +27,7 @@ export async function PATCH(req: NextRequest) {
     if (d[k] !== undefined) data[k] = d[k];
   }
   if (d.replyTo !== undefined) data.replyTo = d.replyTo || null;
+  if (d.defaultPaymentUrl !== undefined) data.defaultPaymentUrl = d.defaultPaymentUrl || null;
   if (d.sequence !== undefined) {
     if (!plan.customTemplates && JSON.stringify(d.sequence) !== user.settings.sequence) {
       return NextResponse.json({ error: "Custom sequences require the Starter plan.", upgradeRequired: true }, { status: 402 });

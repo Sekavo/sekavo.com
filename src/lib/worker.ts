@@ -40,26 +40,38 @@ async function maybeSendDailyDigest(): Promise<boolean> {
     });
     if (alreadySent) continue;
 
-    const [sentToday, repliesToday, activeInvoices, overdueSum] = await Promise.all([
+    const [sentToday, repliesToday, activeInvoices, overdueInvoices] = await Promise.all([
       db.scheduledEmail.count({ where: { status: "sent", sentAt: { gte: startOfDay }, invoice: { userId: user.id } } }),
       db.conversationEvent.count({
         where: { type: "reply_received", occurredAt: { gte: startOfDay }, invoice: { userId: user.id } },
       }),
       db.invoice.count({ where: { userId: user.id, status: "active" } }),
-      db.invoice.aggregate({
+      db.invoice.findMany({
         where: { userId: user.id, status: "active", dueAt: { lt: new Date() } },
-        _sum: { amountCents: true },
+        select: { amountCents: true, currency: true },
       }),
     ]);
 
     if (sentToday === 0 && repliesToday === 0) continue; // nothing to report
 
-    const overdue = overdueSum._sum.amountCents ?? 0;
+    // Sum overdue per currency — never mix symbols across currencies
+    const byCurrency = new Map<string, number>();
+    for (const inv of overdueInvoices) {
+      byCurrency.set(inv.currency, (byCurrency.get(inv.currency) ?? 0) + inv.amountCents);
+    }
+    const overdueLine =
+      byCurrency.size === 0
+        ? "none"
+        : [...byCurrency.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(([cur, cents]) => `${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })} ${cur}`)
+            .join(" + ");
+
     await sendEmail({
       userId: user.id,
       to: user.email,
       subject: `[Paidhound] Daily chase report — ${sentToday} sent, ${repliesToday} repl${repliesToday === 1 ? "y" : "ies"}`,
-      text: `Here's what Paidhound did in the last 24 hours:\n\n- Chase emails sent: ${sentToday}\n- Customer replies received: ${repliesToday}\n- Active invoices being chased: ${activeInvoices}\n- Overdue balance outstanding: $${(overdue / 100).toFixed(2)}\n\nOpen your dashboard to review replies and mark paid invoices.`,
+      text: `Here's what Paidhound did in the last 24 hours:\n\n- Chase emails sent: ${sentToday}\n- Customer replies received: ${repliesToday}\n- Active invoices being chased: ${activeInvoices}\n- Overdue balance outstanding: ${overdueLine}\n\nOpen your dashboard to review replies and mark paid invoices.`,
       kind: "digest",
     });
     await db.analyticsEvent.create({ data: { userId: user.id, type: "digest_sent", meta: JSON.stringify({ sentToday, repliesToday }) } });

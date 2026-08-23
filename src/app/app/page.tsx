@@ -74,7 +74,7 @@ export default async function DashboardPage() {
   });
   const maxBucket = Math.max(...buckets.map((b) => b.total), 1);
 
-  const [nextChases, activity] = await Promise.all([
+  const [nextChases, activity, failedSends, totalInvoices] = await Promise.all([
     db.scheduledEmail.findMany({
       where: { status: "pending", invoice: { userId: user.id } },
       include: { invoice: { include: { customer: true } } },
@@ -87,11 +87,20 @@ export default async function DashboardPage() {
       orderBy: { occurredAt: "desc" },
       take: 8,
     }),
+    db.scheduledEmail.findMany({
+      where: { status: "failed", invoice: { userId: user.id } },
+      include: { invoice: { select: { id: true, number: true, customer: { select: { name: true } } } } },
+      orderBy: { updatedAt: "desc" },
+      take: 3,
+    }),
+    db.invoice.count({ where: { userId: user.id } }),
   ]);
 
   const sub = user.subscription;
   const plan = effectivePlan((sub?.plan as never) ?? "free", sub?.status ?? "active", user.trialEndsAt);
   const attention = [...overdueInv].sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime());
+  const brandNew = totalInvoices === 0;
+  const identityDone = Boolean(user.settings?.onboardingDone);
 
   return (
     <div className="space-y-8">
@@ -105,6 +114,57 @@ export default async function DashboardPage() {
           </>
         }
       />
+
+      {/* Delivery failures — never hide these */}
+      {failedSends.length > 0 && (
+        <div className="border border-overdue/30 bg-overdue-bg px-4 py-3 text-sm text-overdue">
+          <p className="font-semibold">
+            {failedSends.length === 1 ? "One chase email failed to deliver." : `${failedSends.length} chase emails failed to deliver.`}
+          </p>
+          <ul className="mt-1 space-y-0.5 text-[13px]">
+            {failedSends.map((f) => (
+              <li key={f.id}>
+                <Link href={`/app/invoices/${f.invoiceId}`} className="font-medium underline underline-offset-2">
+                  {f.invoice.number}
+                </Link>{" "}
+                — {f.invoice.customer.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* First-run checklist */}
+      {brandNew && (
+        <Surface className="px-5 py-5">
+          <Eyebrow className="mb-3">Get started</Eyebrow>
+          <ol className="space-y-3">
+            <li className="flex items-start gap-3">
+              <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center border text-[11px] font-semibold ${identityDone ? "border-paid bg-paid-bg text-paid" : "border-line-strong text-ink-faint"}`}>
+                {identityDone ? "✓" : "1"}
+              </span>
+              <p className="text-sm leading-relaxed text-ink-soft">
+                <span className="font-medium text-ink">Confirm your sender identity.</span> Chases are signed with your name and business.{" "}
+                <Link href="/app/settings" className="font-medium text-pine-700 hover:underline">Open settings →</Link>
+              </p>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center border border-line-strong text-[11px] font-semibold text-ink-faint">2</span>
+              <p className="text-sm leading-relaxed text-ink-soft">
+                <span className="font-medium text-ink">Add the invoice you&apos;re waiting on.</span> Paidhound schedules the full sequence immediately —{" "}
+                <Link href="/app/invoices?new=1" className="font-medium text-pine-700 hover:underline">add it now →</Link>
+              </p>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center border border-line-strong text-[11px] font-semibold text-ink-faint">3</span>
+              <p className="text-sm leading-relaxed text-ink-soft">
+                <span className="font-medium text-ink">Review what will be sent.</span> Every email is previewed on the invoice before it goes —{" "}
+                <Link href="/app/sequences" className="font-medium text-pine-700 hover:underline">see the ladder →</Link>
+              </p>
+            </li>
+          </ol>
+        </Surface>
+      )}
 
       {/* Figures strip — 4×1 on desktop, 2×2 on mobile, ruled like a ledger */}
       <Surface className="grid grid-cols-2 sm:grid-cols-4">

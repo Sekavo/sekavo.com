@@ -12,6 +12,7 @@ export interface IdentitySettings {
   signature: string;
   businessName: string;
   lateFeePolicy: string;
+  defaultPaymentUrl: string | null;
   catchUpOnLate: boolean;
   pauseOnReplyDays: number;
 }
@@ -44,6 +45,7 @@ export function IdentityForm({
         signature: String(fd.get("signature") ?? ""),
         businessName: String(fd.get("businessName") ?? ""),
         lateFeePolicy: String(fd.get("lateFeePolicy") ?? ""),
+        defaultPaymentUrl: String(fd.get("defaultPaymentUrl") ?? ""),
         catchUpOnLate: fd.get("catchUpOnLate") === "on",
         pauseOnReplyDays: parseInt(String(fd.get("pauseOnReplyDays") ?? "3"), 10) || 3,
         onboardingDone: true,
@@ -83,6 +85,14 @@ export function IdentityForm({
             </Field>
             <Field label="Signature" htmlFor="signature" className="sm:col-span-2">
               <textarea id="signature" name="signature" rows={2} maxLength={1000} defaultValue={initial.signature} className={textarea} placeholder={"— Maya\nAcme Design Studio"} />
+            </Field>
+            <Field
+              label="Default payment link · optional"
+              htmlFor="defaultPaymentUrl"
+              hint="Pre-filled on every new invoice — e.g. your Stripe payment page."
+              className="sm:col-span-2"
+            >
+              <input id="defaultPaymentUrl" name="defaultPaymentUrl" type="url" maxLength={500} defaultValue={initial.defaultPaymentUrl ?? ""} className={input} placeholder="https://buy.stripe.com/…" />
             </Field>
             <Field
               label="Late-fee sentence"

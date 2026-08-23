@@ -37,6 +37,7 @@ async function main() {
           businessName: "Acme Design Studio",
           signature: "— Maya\nAcme Design Studio\nacmedesign.studio",
           lateFeePolicy: "a 1.5% monthly late fee applies to balances more than 30 days past due",
+          defaultPaymentUrl: "https://buy.stripe.com/demo_acme_studio",
           sequence: JSON.stringify(DEFAULT_SEQUENCE),
         },
       },
@@ -103,27 +104,64 @@ async function main() {
     await syncScheduleForInvoice(inv.id);
   }
 
-  // A little activity history
-  const firstInvoice = await db.invoice.findFirst({ where: { userId: user.id, number: "INV-1041" } });
-  if (firstInvoice) {
+  // Realistic activity history
+  const inv1041 = await db.invoice.findFirst({ where: { userId: user.id, number: "INV-1041" } });
+  const inv1038 = await db.invoice.findFirst({ where: { userId: user.id, number: "INV-1038" } });
+  const inv1042 = await db.invoice.findFirst({ where: { userId: user.id, number: "INV-1042" } });
+
+  if (inv1041 && inv1038 && inv1042) {
     await db.conversationEvent.createMany({
       data: [
         {
-          invoiceId: firstInvoice.id,
+          invoiceId: inv1038.id,
+          type: "chase_sent",
+          direction: "outbound",
+          summary: "Firm follow-up email sent to ap@bigco.example",
+          occurredAt: daysFromNow(-9),
+        },
+        {
+          invoiceId: inv1038.id,
+          type: "chase_sent",
+          direction: "outbound",
+          summary: "Final notice email sent to ap@bigco.example",
+          occurredAt: daysFromNow(-2),
+        },
+        {
+          invoiceId: inv1041.id,
           type: "chase_sent",
           direction: "outbound",
           summary: "Gentle nudge email sent to accounts@northwind.example",
-          occurredAt: daysFromNow(-3),
+          occurredAt: daysFromNow(-4),
         },
         {
-          invoiceId: firstInvoice.id,
+          invoiceId: inv1041.id,
           type: "reply_received",
           direction: "inbound",
           summary: 'Reply received: "Re: INV-1041"',
           rawText: "Hi Maya, accounts payable is processing this week's batch — expect payment by Friday.",
+          occurredAt: daysFromNow(-3),
+        },
+        {
+          invoiceId: inv1042.id,
+          type: "chase_sent",
+          direction: "outbound",
+          summary: "Due-today note sent to billing@lumenagency.example",
           occurredAt: daysFromNow(-2),
         },
+        {
+          invoiceId: inv1042.id,
+          type: "manual_note",
+          direction: "internal",
+          summary: "PO approved by Lumen finance — expects payment this week.",
+          occurredAt: daysFromNow(-1),
+        },
       ],
+    });
+
+    // Mark the two older chases as actually-sent rows so timelines look lived-in
+    await db.scheduledEmail.updateMany({
+      where: { invoiceId: inv1038.id, status: "pending" },
+      data: { status: "sent", sentAt: daysFromNow(-2), subject: "Final reminder: invoice INV-1038 — $3,850.00 overdue" },
     });
   }
 

@@ -5,11 +5,21 @@ import { useRouter } from "next/navigation";
 import { btn, cn, input, Surface } from "./ui";
 import { PLANS, type PlanId } from "@/lib/plans";
 
-export function PlanTable({ currentPlan }: { currentPlan: string }) {
+export function PlanTable({
+  currentPlan,
+  billingEnabled = true,
+}: {
+  currentPlan: string;
+  billingEnabled?: boolean;
+}) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function checkout(plan: PlanId) {
+    if (!billingEnabled) {
+      setError("Checkout isn't configured on this deployment yet.");
+      return;
+    }
     setBusy(plan);
     setError(null);
     const res = await fetch("/api/billing/checkout", {

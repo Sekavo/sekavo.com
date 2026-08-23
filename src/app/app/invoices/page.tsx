@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { effectivePlan } from "@/lib/plans";
 import {
   Money, PageHeader, Td, Th, btn, cn, invoiceStatusView,
   shortDate, StatusLine, EmptyState,
@@ -24,6 +25,12 @@ export default async function InvoicesPage({
   if (!user) return null;
   const sp = await searchParams;
   const tab = (["all", "overdue", "paid"].includes(sp.status ?? "") ? sp.status : "all") as Tab;
+  const plan = effectivePlan(
+    (user.subscription?.plan as never) ?? "free",
+    user.subscription?.status ?? "active",
+    user.trialEndsAt
+  );
+  const planCanImport = plan.csvImport;
 
   const invoices = await db.invoice.findMany({
     where: { userId: user.id },
@@ -69,16 +76,18 @@ export default async function InvoicesPage({
         actions={<a href="/api/export" className={btn.secondary}>Export CSV</a>}
       />
 
-      <NewInvoiceForm defaultNewOpen={sp.new === "1"} />
+      <NewInvoiceForm defaultNewOpen={sp.new === "1"} defaultPaymentUrl={user.settings?.defaultPaymentUrl ?? ""} canImportCsv={planCanImport} />
 
-      <details className="group">
-        <summary className="cursor-pointer text-[13px] font-medium text-ink-soft hover:text-ink">
-          Import from CSV
-        </summary>
-        <div className="mt-3">
-          <CsvImport />
-        </div>
-      </details>
+      {planCanImport && (
+        <details className="group">
+          <summary className="cursor-pointer text-[13px] font-medium text-ink-soft hover:text-ink">
+            Import from CSV
+          </summary>
+          <div className="mt-3">
+            <CsvImport />
+          </div>
+        </details>
+      )}
 
       {/* Filter row */}
       <nav className="flex flex-wrap items-center justify-between gap-3 border-b border-line">

@@ -71,7 +71,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       (!d.status || d.status === "active") &&
       (data.dueAt || data.amountCents || data.chasingEnabled !== undefined || customerIdChanged)
     ) {
-      await syncScheduleForInvoice(id);
+      // A due-date edit re-anchors the whole remaining ladder (UI promises this).
+      await syncScheduleForInvoice(id, { reanchor: Boolean(data.dueAt) });
     }
 
     return NextResponse.json({ invoice: updated });

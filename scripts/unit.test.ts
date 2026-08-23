@@ -4,7 +4,7 @@
 import { effectivePlan, PLANS } from "../src/lib/plans";
 import { renderTemplate, parseSequence, sequenceFor, DEFAULT_SEQUENCE } from "../src/lib/email/templates";
 import { escapeCsvCell } from "../src/lib/csv";
-import { replyDedupKey } from "../src/lib/engine";
+import { replyDedupKey, renderClean } from "../src/lib/engine";
 
 let pass = 0;
 let fail = 0;
@@ -85,6 +85,32 @@ check("identical deliveries → same key", k1 === k2);
 check("different tenant → different key", k1 !== k3);
 check("case/whitespace normalized", k1 === k4);
 check("different body → different key", k1 !== replyDedupKey("u1", "a@x.test", "Re: INV-1", "not paid"));
+
+// ---------- renderer cleanup + greeting semantics ----------
+eq("renderClean collapses empty-block gaps", renderClean("Hi Sarah,\n\n\n\nBody here.\n\n\n— M"), "Hi Sarah,\n\nBody here.\n\n— M");
+eq("renderClean trims trailing whitespace", renderClean("line one   \nline two\t"), "line one\nline two");
+eq("renderClean keeps single newlines", renderClean("a\nb"), "a\nb");
+
+import { buildTemplateVars } from "../src/lib/engine";
+function fakeInv(customerName: string) {
+  return {
+    id: "i1", userId: "u1", number: "INV-1", amountCents: 10000, currency: "USD",
+    dueAt: new Date(Date.now() - 5 * 86400000), status: "active", chasingEnabled: true,
+    paymentUrl: null,
+    customer: { name: customerName, email: "c@x.test" },
+    user: {
+      id: "u1", email: "o@x.test", businessName: "Studio",
+      settings: { senderName: "O", senderEmail: "o@x.test", replyTo: null, ccOwner: false,
+        signature: "", businessName: "Studio", lateFeePolicy: "", sequence: JSON.stringify(DEFAULT_SEQUENCE),
+        catchUpOnLate: true, pauseOnReplyDays: 3 },
+      subscription: { plan: "free", status: "active" }, trialEndsAt: null,
+    },
+  };
+}
+eq("greeting uses full customer name (companies safe)", buildTemplateVars(fakeInv("BigCo Inc") as never).vars.customer_name, "BigCo Inc");
+eq("person name kept whole", buildTemplateVars(fakeInv("Sarah Chen") as never).vars.customer_name, "Sarah Chen");
+eq("first_name available for optional use", buildTemplateVars(fakeInv("Sarah Chen") as never).vars.first_name, "Sarah");
+check("days_late computed for overdue fixture", buildTemplateVars(fakeInv("X") as never).vars.days_late >= 4);
 
 console.log(`\nUnit: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

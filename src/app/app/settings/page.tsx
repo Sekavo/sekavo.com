@@ -24,6 +24,7 @@ export default async function SettingsPage() {
           signature: user.settings?.signature ?? "",
           businessName: user.settings?.businessName ?? "",
           lateFeePolicy: user.settings?.lateFeePolicy ?? "",
+          defaultPaymentUrl: user.settings?.defaultPaymentUrl ?? null,
           catchUpOnLate: user.settings?.catchUpOnLate ?? true,
           pauseOnReplyDays: user.settings?.pauseOnReplyDays ?? 3,
         }}
