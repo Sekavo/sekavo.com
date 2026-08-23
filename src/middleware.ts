@@ -66,7 +66,18 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (valid && (req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/signup")) {
+  if (!valid && req.nextUrl.pathname.startsWith("/onboarding")) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  if (
+    valid &&
+    (req.nextUrl.pathname === "/login" ||
+      req.nextUrl.pathname === "/signup")
+  ) {
     const url = req.nextUrl.clone();
     url.pathname = "/app";
     url.search = "";
@@ -77,5 +88,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/api/:path*", "/login", "/signup"],
+  matcher: ["/app/:path*", "/api/:path*", "/login", "/signup", "/onboarding"],
 };

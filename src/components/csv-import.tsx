@@ -1,8 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { btn, input } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { btn } from "./ui";
+
+const COLUMNS = ["customer_name", "customer_email", "invoice_number", "amount", "due_date"];
 
 export function CsvImport() {
   const router = useRouter();
@@ -26,30 +28,46 @@ export function CsvImport() {
       setError(data.error ?? "Import failed.");
       return;
     }
-    setMsg(`Imported ${data.imported} invoices${data.skipped ? `, skipped ${data.skipped}` : ""}.${data.errors?.length ? ` Issues: ${data.errors.slice(0, 3).join("; ")}` : ""}`);
+    setMsg(
+      `Imported ${data.imported} invoice${data.imported === 1 ? "" : "s"}${data.skipped ? `, skipped ${data.skipped}` : ""}.` +
+        (data.errors?.length ? ` Issues: ${data.errors.slice(0, 3).join("; ")}` : "")
+    );
     if (fileRef.current) fileRef.current.value = "";
     router.refresh();
   }
 
   return (
-    <form onSubmit={onUpload} className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <h2 className="font-semibold">CSV import</h2>
-      <p className="mt-1 text-xs text-neutral-500">
-        Columns: <code className="rounded bg-neutral-100 px-1">customer_name</code>,{" "}
-        <code className="rounded bg-neutral-100 px-1">customer_email</code>,{" "}
-        <code className="rounded bg-neutral-100 px-1">invoice_number</code>,{" "}
-        <code className="rounded bg-neutral-100 px-1">amount</code>,{" "}
-        <code className="rounded bg-neutral-100 px-1">due_date</code>, optional:{" "}
-        <code className="rounded bg-neutral-100 px-1">currency, issue_date, payment_url</code>
-      </p>
-      <div className="mt-3 flex flex-wrap items-end gap-3">
-        <div className="flex-1">
-          <input ref={fileRef} type="file" accept=".csv,text/csv" required className={`${input} file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-indigo-700`} />
+    <form onSubmit={onUpload} className="border border-line bg-white">
+      <div className="px-4 py-4">
+        <p className="text-[13px] leading-relaxed text-ink-soft">
+          Required columns:{" "}
+          {COLUMNS.map((c) => (
+            <code key={c} className="mr-1 inline-block border border-line bg-paper-sunken px-1.5 py-0.5 font-mono text-[11px] text-ink">
+              {c}
+            </code>
+          ))}{" "}
+          — optional: <code className="border border-line bg-paper-sunken px-1.5 py-0.5 font-mono text-[11px]">currency</code>,{" "}
+          <code className="border border-line bg-paper-sunken px-1.5 py-0.5 font-mono text-[11px]">issue_date</code>,{" "}
+          <code className="border border-line bg-paper-sunken px-1.5 py-0.5 font-mono text-[11px]">payment_url</code>
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv,text/csv"
+            required
+            className="max-w-sm border border-line-strong bg-white px-2 py-1.5 text-xs file:mr-3 file:h-6 file:border-0 file:border-r file:border-line file:bg-transparent file:pr-3 file:text-xs file:font-medium file:text-pine-700"
+          />
+          <button type="submit" disabled={busy} className={`${btn.secondary} h-8 px-3 text-[13px]`}>
+            {busy ? "Importing…" : "Import"}
+          </button>
         </div>
-        <button type="submit" disabled={busy} className={btn.secondary}>{busy ? "Importing…" : "Import CSV"}</button>
       </div>
-      {msg && <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{msg}</p>}
-      {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+      {(msg || error) && (
+        <p className={`border-t border-line px-4 py-2.5 text-sm ${error ? "bg-overdue-bg text-overdue" : "bg-paid-bg text-paid"}`}>
+          {error ?? msg}
+        </p>
+      )}
     </form>
   );
 }

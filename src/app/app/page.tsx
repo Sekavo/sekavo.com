@@ -2,10 +2,34 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { effectivePlan } from "@/lib/plans";
-import { Card, StatCard, Badge, btn } from "@/components/ui";
+import {
+  Eyebrow, Money, PageHeader, StatusLine, Surface, Td, Th,
+  btn, cn, relTime, shortDate,
+} from "@/components/ui";
 
-function money(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100);
+const DAY = 86_400_000;
+
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Dashboard" };
+
+function StatCell({
+  label, value, caption, valueClass = "", className = "",
+}: {
+  label: string;
+  value: React.ReactNode;
+  caption?: React.ReactNode;
+  valueClass?: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn("px-5 py-4 sm:px-6", className)}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">{label}</p>
+      <p className={cn("tnum mt-1.5 font-display text-[26px] font-semibold leading-none tracking-[-0.01em]", valueClass)}>
+        {value}
+      </p>
+      {caption && <p className="mt-1.5 text-xs text-ink-soft">{caption}</p>}
+    </div>
+  );
 }
 
 export default async function DashboardPage() {
@@ -19,36 +43,34 @@ export default async function DashboardPage() {
       orderBy: { dueAt: "asc" },
     }),
     db.invoice.findMany({
-      where: { userId: user.id, status: "paid", paidAt: { gte: new Date(Date.now() - 30 * 24 * 3600 * 1000) } },
-      select: { amountCents: true, paidAt: true, dueAt: true, issuedAt: true },
+      where: { userId: user.id, status: "paid", paidAt: { gte: new Date(Date.now() - 30 * DAY) } },
+      select: { amountCents: true, issuedAt: true, paidAt: true },
     }),
   ]);
 
   const now = Date.now();
   const outstanding = activeInvoices.reduce((s, i) => s + i.amountCents, 0);
-  const overdueInvoices = activeInvoices.filter((i) => i.dueAt.getTime() < now);
-  const overdue = overdueInvoices.reduce((s, i) => s + i.amountCents, 0);
+  const overdueInv = activeInvoices.filter((i) => i.dueAt.getTime() < now);
+  const overdueSum = overdueInv.reduce((s, i) => s + i.amountCents, 0);
   const collected30 = paidRecent.reduce((s, i) => s + i.amountCents, 0);
   const avgDaysToPay =
     paidRecent.length > 0
       ? Math.round(
-          paidRecent.reduce((s, i) => s + ((i.paidAt?.getTime() ?? now) - i.issuedAt.getTime()) / 86400000, 0) / paidRecent.length
+          paidRecent.reduce((s, i) => s + ((i.paidAt?.getTime() ?? now) - i.issuedAt.getTime()) / DAY, 0) /
+            paidRecent.length
         )
       : null;
 
-  // Aging buckets (AR standard)
+  // Aging buckets
   const buckets = [
-    { label: "Not yet due", min: -Infinity, max: 0 },
-    { label: "1–30 days late", min: 0.001, max: 30 },
-    { label: "31–60 days", min: 30, max: 60 },
-    { label: "61–90 days", min: 60, max: 90 },
-    { label: "90+ days", min: 90, max: Infinity },
+    { label: "Not yet due", test: (d: number) => d <= 0 },
+    { label: "1–30 days late", test: (d: number) => d > 0 && d <= 30 },
+    { label: "31–60 days late", test: (d: number) => d > 30 && d <= 60 },
+    { label: "61–90 days late", test: (d: number) => d > 60 && d <= 90 },
+    { label: "Over 90 days late", test: (d: number) => d > 90 },
   ].map((b) => {
-    const invs = activeInvoices.filter((i) => {
-      const daysLate = (now - i.dueAt.getTime()) / 86400000;
-      return daysLate > b.min && daysLate <= b.max;
-    });
-    return { ...b, total: invs.reduce((s, i) => s + i.amountCents, 0), count: invs.length };
+    const invs = activeInvoices.filter((i) => b.test((now - i.dueAt.getTime()) / DAY));
+    return { label: b.label, total: invs.reduce((s, i) => s + i.amountCents, 0), count: invs.length };
   });
   const maxBucket = Math.max(...buckets.map((b) => b.total), 1);
 
@@ -57,181 +79,237 @@ export default async function DashboardPage() {
       where: { status: "pending", invoice: { userId: user.id } },
       include: { invoice: { include: { customer: true } } },
       orderBy: { plannedFor: "asc" },
-      take: 8,
+      take: 6,
     }),
     db.conversationEvent.findMany({
       where: { invoice: { userId: user.id } },
-      include: { invoice: { include: { customer: true } } },
+      include: { invoice: { select: { id: true, number: true } } },
       orderBy: { occurredAt: "desc" },
-      take: 10,
+      take: 8,
     }),
   ]);
 
   const sub = user.subscription;
   const plan = effectivePlan((sub?.plan as never) ?? "free", sub?.status ?? "active", user.trialEndsAt);
-  const usagePct = Math.min(100, Math.round((activeInvoices.length / plan.maxActiveInvoices) * 100));
+  const attention = [...overdueInv].sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime());
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Cash dashboard</h1>
-          <p className="text-sm text-neutral-500">What&apos;s owed to you and what Paidhound is doing about it.</p>
+    <div className="space-y-8">
+      <PageHeader
+        title="Receivables"
+        description="What you're owed, what's late, and what Paidhound is doing about it right now."
+        actions={
+          <>
+            <Link href="/app/invoices" className={btn.secondary}>All invoices</Link>
+            <Link href="/app/invoices?new=1" className={btn.primary}>Add invoice</Link>
+          </>
+        }
+      />
+
+      {/* Figures strip — 4×1 on desktop, 2×2 on mobile, ruled like a ledger */}
+      <Surface className="grid grid-cols-2 sm:grid-cols-4">
+        <StatCell
+          label="Outstanding"
+          value={<Money cents={outstanding} />}
+          caption={`${activeInvoices.length} invoice${activeInvoices.length === 1 ? "" : "s"} being chased`}
+          className="border-line max-sm:border-r max-sm:border-b sm:border-r"
+        />
+        <StatCell
+          label="Overdue"
+          value={<Money cents={overdueSum} />}
+          valueClass={overdueSum > 0 ? "text-overdue" : ""}
+          caption={`${overdueInv.length} past due`}
+          className="border-line max-sm:border-b sm:border-r"
+        />
+        <StatCell
+          label="Collected · 30 days"
+          value={<Money cents={collected30} />}
+          caption={`${paidRecent.length} payments`}
+          className="border-line max-sm:border-r max-sm:border-t sm:border-r sm:border-t-0"
+        />
+        <StatCell
+          label="Avg days to pay"
+          value={avgDaysToPay !== null ? `${avgDaysToPay}` : "—"}
+          caption={avgDaysToPay !== null ? "from issue to payment" : "no payments yet"}
+          className="border-line max-sm:border-t sm:border-t-0"
+        />
+      </Surface>
+
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Left column */}
+        <div className="space-y-8 lg:col-span-2">
+          {/* Needs attention */}
+          <section>
+            <Eyebrow className="mb-2">Needs your attention</Eyebrow>
+            <Surface>
+              {attention.length === 0 ? (
+                <p className="px-4 py-8 text-center text-sm text-ink-faint">
+                  Nothing is overdue. Paidhound keeps it that way.
+                </p>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr>
+                      <Th>Customer</Th>
+                      <Th className="text-right">Amount</Th>
+                      <Th className="hidden sm:table-cell">Due</Th>
+                      <Th>Late</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attention.slice(0, 5).map((inv) => {
+                      const late = Math.floor((now - inv.dueAt.getTime()) / DAY);
+                      return (
+                        <tr key={inv.id} className="group hover:bg-paper-sunken/60">
+                          <Td>
+                            <Link href={`/app/invoices/${inv.id}`} className="block">
+                              <span className="font-medium text-ink group-hover:text-pine-700">{inv.customer.name}</span>
+                              <span className="block font-mono text-xs text-ink-faint">{inv.number}</span>
+                            </Link>
+                          </Td>
+                          <Td className="text-right">
+                            <Money cents={inv.amountCents} currency={inv.currency} className="font-medium" />
+                          </Td>
+                          <Td className="tnum hidden text-ink-soft sm:table-cell">{shortDate(inv.dueAt)}</Td>
+                          <Td>
+                            <span className={cn("tnum text-[13px] font-semibold", late > 60 ? "text-overdue" : "text-caution")}>
+                              {late}d
+                            </span>
+                          </Td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+              {attention.length > 5 && (
+                <div className="border-t border-line px-4 py-2.5 text-xs">
+                  <Link href="/app/invoices?status=overdue" className="font-medium text-pine-700 hover:underline">
+                    View all {attention.length} overdue invoices →
+                  </Link>
+                </div>
+              )}
+            </Surface>
+          </section>
+
+          {/* Upcoming chases */}
+          <section>
+            <Eyebrow className="mb-2">Upcoming automated chases</Eyebrow>
+            <Surface>
+              <ul className="divide-y divide-line">
+                {nextChases.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between gap-4 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm">
+                        <Link href={`/app/invoices/${c.invoiceId}`} className="font-medium hover:text-pine-700">
+                          {c.invoice.customer.name}
+                        </Link>
+                        <span className="text-ink-faint"> · {c.stepLabel}</span>
+                      </p>
+                      <p className="tnum mt-0.5 text-xs text-ink-faint">
+                        {c.invoice.number} · <Money cents={c.invoice.amountCents} currency={c.invoice.currency} /> ·{" "}
+                        {shortDate(c.plannedFor)}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-xs font-medium text-pine-700">{relTime(c.plannedFor)}</span>
+                  </li>
+                ))}
+                {nextChases.length === 0 && (
+                  <li className="px-4 py-8 text-center text-sm text-ink-faint">Nothing scheduled yet.</li>
+                )}
+              </ul>
+            </Surface>
+          </section>
         </div>
-        <Link href="/app/invoices?new=1" className={btn.primary}>+ Add invoice</Link>
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Outstanding" value={money(outstanding)} sub={`${activeInvoices.length} active invoices`} />
-        <StatCard label="Overdue" value={money(overdue)} sub={`${overdueInvoices.length} past due`} tone={overdue > 0 ? "danger" : "default"} />
-        <StatCard label="Collected (30d)" value={money(collected30)} tone="success" />
-        <StatCard label="Avg days to pay" value={avgDaysToPay !== null ? `${avgDaysToPay}d` : "—"} sub="last 30 days of payments" />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-5">
-        {/* Aging */}
-        <Card className="lg:col-span-3">
-          <h2 className="font-semibold">Receivables aging</h2>
-          {activeInvoices.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <>
-              <div className="mt-4 space-y-3">
+        {/* Right column */}
+        <div className="space-y-8">
+          <section>
+            <Eyebrow className="mb-2">Aging</Eyebrow>
+            <Surface className="px-4 py-4">
+              <dl className="space-y-3">
                 {buckets.map((b) => (
                   <div key={b.label}>
-                    <div className="mb-1 flex justify-between text-xs text-neutral-600">
-                      <span>{b.label} <span className="text-neutral-400">({b.count})</span></span>
-                      <span className="font-medium tabular-nums">{money(b.total)}</span>
+                    <div className="flex items-baseline justify-between text-xs">
+                      <dt className="text-ink-soft">{b.label}</dt>
+                      <dd className={cn("tnum font-medium", b.total > 0 ? "text-ink" : "text-ink-faint")}>
+                        <Money cents={b.total} />
+                      </dd>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
+                    <div className="mt-1 h-[3px] bg-paper-sunken">
                       <div
-                        className={`h-full rounded-full ${b.label === "Not yet due" ? "bg-indigo-400" : b.max <= 30 ? "bg-amber-400" : "bg-red-500"}`}
-                        style={{ width: `${Math.max(2, (b.total / maxBucket) * 100)}%` }}
+                        className={cn("h-full", b.label.startsWith("Not") ? "bg-pine-500" : b.total / maxBucket > 0.66 || b.label.includes("90") ? "bg-overdue" : "bg-caution")}
+                        style={{ width: `${Math.max(b.total > 0 ? 2 : 0, (b.total / maxBucket) * 100)}%` }}
                       />
                     </div>
                   </div>
                 ))}
+              </dl>
+              {activeInvoices.length > 0 && (
+                <p className="mt-4 border-t border-line pt-3 text-[11.5px] leading-relaxed text-ink-faint">
+                  Recovery odds drop sharply past 90 days — work the top bucket first.
+                </p>
+              )}
+            </Surface>
+          </section>
+
+          <section>
+            <Eyebrow className="mb-2">Plan</Eyebrow>
+            <Surface className="px-4 py-4">
+              <div className="flex items-baseline justify-between">
+                <p className="text-sm font-semibold">{plan.name}</p>
+                <p className="tnum text-xs text-ink-soft">
+                  {activeInvoices.length}/{plan.maxActiveInvoices} invoices
+                </p>
               </div>
-              <p className="mt-4 border-t border-neutral-100 pt-3 text-xs text-neutral-500">
-                Focus first on the oldest bucket — recovery probability drops sharply after 90 days.
+              <div className="mt-2 h-[3px] bg-paper-sunken">
+                <div
+                  className={cn("h-full", activeInvoices.length >= plan.maxActiveInvoices ? "bg-overdue" : "bg-pine-600")}
+                  style={{ width: `${Math.max(2, Math.min(100, (activeInvoices.length / plan.maxActiveInvoices) * 100))}%` }}
+                />
+              </div>
+              <p className="mt-2.5 text-[11.5px] leading-relaxed text-ink-faint">
+                Paid, paused, and closed invoices don&apos;t count against your plan.
               </p>
-            </>
-          )}
-        </Card>
+            </Surface>
+          </section>
 
-        {/* Plan usage */}
-        <Card className="lg:col-span-2">
-          <h2 className="font-semibold">Chase capacity</h2>
-          <div className="mt-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-neutral-600">{plan.name} plan</span>
-              <span className="font-medium tabular-nums">{activeInvoices.length}/{plan.maxActiveInvoices}</span>
-            </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100">
-              <div className={`h-full rounded-full ${usagePct >= 100 ? "bg-red-500" : "bg-indigo-500"}`} style={{ width: `${Math.max(usagePct, 3)}%` }} />
-            </div>
-            {plan.id === "free" && (
-              <p className="mt-3 text-xs text-neutral-500">
-                Free plan chases your 3 oldest invoices. <Link href="/app/billing" className="font-medium text-indigo-600 hover:underline">Upgrade</Link> to chase everything.
-              </p>
-            )}
-            {trialingNote(sub?.status ?? "", user.trialEndsAt)}
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Upcoming */}
-        <Card>
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold">Next chases</h2>
-            <Link href="/app/invoices" className="text-xs font-medium text-indigo-600 hover:underline">All invoices →</Link>
-          </div>
-          <ul className="mt-4 divide-y divide-neutral-100">
-            {nextChases.map((c) => (
-              <li key={c.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                <div className="min-w-0">
-                  <Link href={`/app/invoices/${c.invoiceId}`} className="truncate font-medium hover:text-indigo-600">
-                    {c.invoice.customer.name}
-                  </Link>
-                  <div className="truncate text-xs text-neutral-500">{c.stepLabel} · {c.invoice.number} · {money(c.invoice.amountCents)}</div>
+          <section>
+            <Eyebrow className="mb-2">Recent activity</Eyebrow>
+            <Surface>
+              <ul className="divide-y divide-line">
+                {activity.map((e) => {
+                  const mark =
+                    e.type === "chase_sent" ? { tone: "pine" as const } :
+                    e.type === "reply_received" ? { tone: "caution" as const } :
+                    e.type === "payment_reported" ? { tone: "paid" as const } :
+                    { tone: "neutral" as const };
+                  return (
+                    <li key={e.id} className="px-4 py-2.5">
+                      <StatusLine tone={mark.tone}>
+                        <span className="max-w-[240px] truncate text-[13px] normal-case tracking-normal text-ink-soft">
+                          {e.type === "chase_sent" ? "Chase sent" : e.type === "reply_received" ? "Reply received" : e.type === "payment_reported" ? "Payment reported" : e.summary.slice(0, 40)}
+                        </span>
+                      </StatusLine>
+                      <p className="mt-0.5 pl-[15px] text-[11px] text-ink-faint">
+                        <span className="font-mono">{e.invoice.number}</span> · {relTime(e.occurredAt)}
+                      </p>
+                    </li>
+                  );
+                })}
+                {activity.length === 0 && (
+                  <li className="px-4 py-8 text-center text-sm text-ink-faint">Activity appears once chasing starts.</li>
+                )}
+              </ul>
+              {activity.length > 0 && (
+                <div className="border-t border-line px-4 py-2.5 text-xs">
+                  <Link href="/app/activity" className="font-medium text-pine-700 hover:underline">Full activity log →</Link>
                 </div>
-                <Badge tone="blue">{relativeDay(c.plannedFor)}</Badge>
-              </li>
-            ))}
-            {nextChases.length === 0 && <li className="py-6 text-center text-sm text-neutral-400">Nothing scheduled yet.</li>}
-          </ul>
-        </Card>
-
-        {/* Activity */}
-        <Card>
-          <h2 className="font-semibold">Recent activity</h2>
-          <ul className="mt-4 space-y-3">
-            {activity.map((e) => (
-              <li key={e.id} className="flex items-start gap-3 text-sm">
-                <span className="mt-0.5">
-                  {e.type === "chase_sent" ? "📧" : e.type === "reply_received" ? "💬" : e.type === "payment_reported" ? "💵" : e.type === "manual_note" ? "📝" : "ℹ️"}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-neutral-800">{e.summary}</div>
-                  <div className="text-xs text-neutral-400">
-                    <Link href={`/app/invoices/${e.invoiceId}`} className="hover:text-indigo-600">{e.invoice.number}</Link> · {timeAgo(e.occurredAt)}
-                  </div>
-                </div>
-              </li>
-            ))}
-            {activity.length === 0 && <li className="py-6 text-center text-sm text-neutral-400">Activity will appear here once chasing starts.</li>}
-          </ul>
-        </Card>
+              )}
+            </Surface>
+          </section>
+        </div>
       </div>
     </div>
   );
 }
-
-function trialingNote(status: string, trialEndsAt: Date | null) {
-  if (status !== "trialing" || !trialEndsAt) return null;
-  const daysLeft = Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86400000);
-  if (daysLeft <= 5) {
-    return (
-      <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-        Trial ends in {daysLeft} day{daysLeft === 1 ? "" : "s"}.{" "}
-        <a href="/app/billing" className="font-semibold underline">Keep Pro features →</a>
-      </p>
-    );
-  }
-  return null;
-}
-
-function EmptyState() {
-  return (
-    <div className="mt-6 rounded-lg border border-dashed border-neutral-300 p-6 text-center">
-      <p className="text-sm font-medium text-neutral-700">No invoices yet</p>
-      <p className="mx-auto mt-1 max-w-xs text-xs text-neutral-500">
-        Add the invoices people owe you — Paidhound builds the chase schedule automatically.
-      </p>
-      <Link href="/app/invoices?new=1" className={`${btn.primary} mt-4`}>Add your first invoice</Link>
-    </div>
-  );
-}
-
-function relativeDay(d: Date): string {
-  const diff = d.getTime() - Date.now();
-  const mins = Math.round(diff / 60000);
-  if (mins < 60) return mins <= 1 ? "any moment" : `in ${mins}m`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `in ${hours}h`;
-  const days = Math.round(hours / 24);
-  if (days === 0) return "today";
-  if (days === 1) return "tomorrow";
-  return `in ${days}d`;
-}
-
-function timeAgo(d: Date): string {
-  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
-}
-
-export const dynamic = "force-dynamic";

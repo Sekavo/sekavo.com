@@ -83,7 +83,7 @@ const k3 = replyDedupKey("u2", "a@x.test", "Re: INV-1", "paid today");
 const k4 = replyDedupKey("u1", "A@X.TEST", "Re: INV-1 ", " paid today ");
 check("identical deliveries → same key", k1 === k2);
 check("different tenant → different key", k1 !== k3);
-check("case/whitespace normalized", k1 === replyDedupKey("u1", "A@X.TEST", "Re: INV-1", " paid today "));
+check("case/whitespace normalized", k1 === k4);
 check("different body → different key", k1 !== replyDedupKey("u1", "a@x.test", "Re: INV-1", "not paid"));
 
 console.log(`\nUnit: ${pass} passed, ${fail} failed`);

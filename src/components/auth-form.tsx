@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { btn, input, label, Logo } from "@/components/ui";
+import { btn, cn, input, labelText } from "./ui";
 
 export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
@@ -36,67 +36,72 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
       setBusy(false);
       return;
     }
-    router.push(mode === "signup" ? "/app?welcome=1" : "/app");
+    router.push(mode === "signup" ? "/onboarding" : "/app");
     router.refresh();
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4">
-      <Logo />
-      <div className="mt-6 w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <h1 className="text-lg font-semibold">{mode === "signup" ? "Create your account" : "Welcome back"}</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          {mode === "signup" ? "14 days of Pro. No credit card required." : "Log in to your chase dashboard."}
-        </p>
+    <div className="w-full">
+      <h1 className="font-display text-[26px] font-semibold tracking-[-0.01em]">
+        {mode === "signup" ? "Create your account" : "Welcome back"}
+      </h1>
+      <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">
+        {mode === "signup"
+          ? "14 days of Pro. No credit card. Your first chase can be scheduled in two minutes."
+          : "Log in to see what's owed and what's been chased."}
+      </p>
 
-        <form onSubmit={onSubmit} className="mt-5 space-y-4">
-          {mode === "signup" && (
-            <>
-              <div>
-                <label htmlFor="name" className={label}>Your name</label>
-                <input id="name" name="name" required maxLength={80} className={input} placeholder="Maya Chen" />
-              </div>
-              <div>
-                <label htmlFor="businessName" className={label}>Business name <span className="text-neutral-400">(optional)</span></label>
-                <input id="businessName" name="businessName" maxLength={120} className={input} placeholder="Acme Design Studio" />
-              </div>
-            </>
-          )}
-          <div>
-            <label htmlFor="email" className={label}>Email</label>
-            <input id="email" name="email" type="email" required autoComplete="email" className={input} placeholder="you@studio.com" />
-          </div>
-          <div>
-            <label htmlFor="password" className={label}>
-              Password {mode === "signup" && <span className="font-normal text-neutral-400">(min 8 chars)</span>}
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              minLength={mode === "signup" ? 8 : undefined}
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              className={input}
-              placeholder="••••••••"
-            />
-          </div>
+      <form onSubmit={onSubmit} className="mt-7 space-y-4">
+        {mode === "signup" && (
+          <>
+            <div>
+              <label htmlFor="name" className={labelText}>Your name</label>
+              <input id="name" name="name" required maxLength={80} autoComplete="name" className={input} placeholder="Maya Chen" />
+            </div>
+            <div>
+              <label htmlFor="businessName" className={labelText}>
+                Business name <span className="font-normal text-ink-faint">· optional</span>
+              </label>
+              <input id="businessName" name="businessName" maxLength={120} autoComplete="organization" className={input} placeholder="Acme Design Studio" />
+            </div>
+          </>
+        )}
+        <div>
+          <label htmlFor="email" className={labelText}>Work email</label>
+          <input id="email" name="email" type="email" required autoComplete="email" className={input} placeholder="you@studio.com" />
+        </div>
+        <div>
+          <label htmlFor="password" className={labelText}>Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minLength={mode === "signup" ? 8 : undefined}
+            autoComplete={mode === "signup" ? "new-password" : "current-password"}
+            className={cn(input, "tracking-widest")}
+            placeholder={mode === "signup" ? "8+ characters" : "••••••••"}
+          />
+        </div>
 
-          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+        {error && (
+          <p role="alert" className="border border-overdue/30 bg-overdue-bg px-3 py-2 text-sm text-overdue">
+            {error}
+          </p>
+        )}
 
-          <button type="submit" disabled={busy} className={`${btn.primary} w-full py-2.5`}>
-            {busy ? "Working…" : mode === "signup" ? "Start free trial" : "Log in"}
-          </button>
-        </form>
+        <button type="submit" disabled={busy} className={`${btn.primary} w-full`}>
+          {busy ? "One moment…" : mode === "signup" ? "Start free trial" : "Log in"}
+        </button>
+      </form>
 
-        <p className="mt-4 text-center text-sm text-neutral-500">
-          {mode === "signup" ? (
-            <>Already have an account? <Link href="/login" className="font-medium text-indigo-600 hover:underline">Log in</Link></>
-          ) : (
-            <>New here? <Link href="/signup" className="font-medium text-indigo-600 hover:underline">Start free trial</Link></>
-          )}
-        </p>
-      </div>
+      <p className="mt-6 border-t border-line pt-4 text-center text-sm text-ink-soft">
+        {mode === "signup" ? (
+          <>Already have an account? <Link href="/login" className="font-medium text-pine-700 hover:underline">Log in</Link></>
+        ) : (
+          <>New to Paidhound? <Link href="/signup" className="font-medium text-pine-700 hover:underline">Start free trial</Link></>
+        )}
+      </p>
     </div>
   );
 }

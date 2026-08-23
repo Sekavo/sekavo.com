@@ -2,24 +2,24 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { btn, input, label } from "@/components/ui";
+import { Field, btn, cn, input } from "./ui";
 
-function todayISO(offsetDays = 0): string {
-  return new Date(Date.now() + offsetDays * 86400000).toISOString().slice(0, 10);
+function iso(offsetDays: number): string {
+  return new Date(Date.now() + offsetDays * 86_400_000).toISOString().slice(0, 10);
 }
 
 export function NewInvoiceForm({ defaultNewOpen }: { defaultNewOpen?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(Boolean(defaultNewOpen));
   const [error, setError] = useState<string | null>(null);
+  const [upgrade, setUpgrade] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [upgradeMsg, setUpgradeMsg] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    setUpgradeMsg(false);
+    setUpgrade(false);
     const fd = new FormData(e.currentTarget);
     const res = await fetch("/api/invoices", {
       method: "POST",
@@ -39,7 +39,7 @@ export function NewInvoiceForm({ defaultNewOpen }: { defaultNewOpen?: boolean })
     setBusy(false);
     if (!res.ok) {
       setError(data.error ?? "Could not save invoice.");
-      setUpgradeMsg(Boolean(data.upgradeRequired));
+      setUpgrade(Boolean(data.upgradeRequired));
       return;
     }
     setOpen(false);
@@ -49,65 +49,61 @@ export function NewInvoiceForm({ defaultNewOpen }: { defaultNewOpen?: boolean })
   if (!open) {
     return (
       <button onClick={() => setOpen(true)} className={btn.primary}>
-        + Add invoice
+        Add invoice
       </button>
     );
   }
 
   return (
-    <div className="w-full rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <h2 className="font-semibold">Add an invoice to chase</h2>
-      <form onSubmit={onSubmit} className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div>
-          <label className={label} htmlFor="customerName">Customer name</label>
-          <input id="customerName" name="customerName" required className={input} placeholder="BigCo Inc." />
-        </div>
-        <div>
-          <label className={label} htmlFor="customerEmail">Customer email</label>
+    <div className="border border-line bg-white">
+      <div className="border-b border-line px-4 py-3">
+        <p className="text-[13px] font-semibold">Add an invoice to chase</p>
+      </div>
+      <form onSubmit={onSubmit} className="grid gap-x-5 gap-y-4 px-4 py-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Field label="Customer name" htmlFor="customerName">
+          <input id="customerName" name="customerName" required maxLength={120} className={input} placeholder="BigCo Inc." />
+        </Field>
+        <Field label="Customer email" htmlFor="customerEmail">
           <input id="customerEmail" name="customerEmail" type="email" required className={input} placeholder="ap@bigco.com" />
-        </div>
-        <div>
-          <label className={label} htmlFor="number">Invoice number</label>
-          <input id="number" name="number" required className={input} placeholder="INV-1043" />
-        </div>
-        <div>
-          <label className={label} htmlFor="amount">Amount</label>
-          <input id="amount" name="amount" type="number" step="0.01" min="0.01" required className={input} placeholder="3850.00" />
-        </div>
-        <div>
-          <label className={label} htmlFor="currency">Currency</label>
+        </Field>
+        <Field label="Invoice number" htmlFor="number">
+          <input id="number" name="number" required maxLength={40} className={cn(input, "font-mono")} placeholder="INV-1043" />
+        </Field>
+        <Field label="Amount" htmlFor="amount">
+          <input id="amount" name="amount" type="number" step="0.01" min="0.01" required className={cn(input, "tnum")} placeholder="3850.00" />
+        </Field>
+        <Field label="Currency" htmlFor="currency">
           <select id="currency" name="currency" defaultValue="USD" className={input}>
-            {["USD", "EUR", "GBP", "CAD", "AUD"].map((c) => <option key={c}>{c}</option>)}
+            {["USD", "EUR", "GBP", "CAD", "AUD"].map((c) => (
+              <option key={c}>{c}</option>
+            ))}
           </select>
-        </div>
-        <div>
-          <label className={label} htmlFor="paymentUrl">Payment link <span className="text-neutral-400">(optional)</span></label>
-          <input id="paymentUrl" name="paymentUrl" type="url" className={input} placeholder="https://pay.stripe.com/..." />
-        </div>
-        <div>
-          <label className={label} htmlFor="issuedAt">Issued</label>
-          <input id="issuedAt" name="issuedAt" type="date" required defaultValue={todayISO(-14)} className={input} />
-        </div>
-        <div>
-          <label className={label} htmlFor="dueAt">Due</label>
-          <input id="dueAt" name="dueAt" type="date" required defaultValue={todayISO(16)} className={input} />
-        </div>
-        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-1">
-          <button type="submit" disabled={busy} className={`${btn.primary} flex-1`}>
-            {busy ? "Saving…" : "Start chasing"}
+        </Field>
+        <Field label="Payment link · optional" htmlFor="paymentUrl" hint="Added to every reminder as a one-click pay button.">
+          <input id="paymentUrl" name="paymentUrl" type="url" className={input} placeholder="https://buy.stripe.com/…" />
+        </Field>
+        <Field label="Issue date" htmlFor="issuedAt">
+          <input id="issuedAt" name="issuedAt" type="date" required defaultValue={iso(-14)} className={cn(input, "tnum")} />
+        </Field>
+        <Field label="Due date" htmlFor="dueAt">
+          <input id="dueAt" name="dueAt" type="date" required defaultValue={iso(16)} className={cn(input, "tnum")} />
+        </Field>
+        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-1 lg:justify-end">
+          <button type="submit" disabled={busy} className={btn.primary}>
+            {busy ? "Scheduling…" : "Schedule chases"}
           </button>
           <button type="button" onClick={() => setOpen(false)} className={btn.secondary}>Cancel</button>
         </div>
       </form>
-
       {error && (
-        <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-          {error}{" "}
-          {upgradeMsg && <a href="/app/billing" className="font-semibold underline">See plans →</a>}
+        <p className="border-t border-line bg-paper-sunken px-4 py-2.5 text-sm text-overdue">
+          {error}
+          {upgrade && <a href="/app/billing" className="font-semibold underline"> See plans →</a>}
         </p>
       )}
-      <p className="mt-3 text-xs text-neutral-500">
-        Paidhound schedules: heads-up 3 days before due, a note on the due date, then follow-ups at +7/+14/+21 days. Already-overdue invoices get one catch-up email in about an hour — pause or edit it before it goes. Adjust the sequence anytime in Settings.
+      <p className="border-t border-line px-4 py-2.5 text-xs leading-relaxed text-ink-faint">
+        Paidhound schedules a heads-up 3 days before the due date, a note on the day, then follow-ups at +7 / +14 / +21 days.
+        Overdue invoices get one catch-up email in about an hour — pause or edit it before it goes.
       </p>
     </div>
   );

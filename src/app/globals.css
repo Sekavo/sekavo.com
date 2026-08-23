@@ -1,26 +1,99 @@
 @import "tailwindcss";
 
+@theme {
+  /* Paidhound palette — warm paper, ink text, deep pine accent */
+  --color-paper: #f8f8f6;
+  --color-paper-sunken: #f1f1ed;
+  --color-ink: #1a1d21;
+  --color-ink-soft: #52565e;
+  --color-ink-faint: #6e7178; /* ≥4.5:1 on white for small metadata text */
+  --color-line: #e4e3de;
+  --color-line-strong: #cfcec7;
+
+  --color-pine-50: #f0f6f3;
+  --color-pine-100: #ddece4;
+  --color-pine-200: #bcd9cb;
+  --color-pine-300: #90bfa9;
+  --color-pine-400: #5da184;
+  --color-pine-500: #338367;
+  --color-pine-600: #14684c;
+  --color-pine-700: #10533e;
+  --color-pine-800: #0d4232;
+  --color-pine-900: #0a3428;
+  --color-pine-950: #062018;
+
+  --color-overdue: #b3382c;
+  --color-overdue-bg: #faeeec;
+  --color-caution: #92610a;
+  --color-caution-bg: #faf3e2;
+  --color-paid: #1d7a46;
+  --color-paid-bg: #e9f4ec;
+
+  --font-display: var(--font-source-serif), Georgia, "Times New Roman", serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* Financial figures align and compare cleanly */
+.tnum {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+::selection {
+  background: var(--color-pine-200);
+}
+
+/* Restrained focus treatment */
+:focus-visible {
+  outline: 2px solid var(--color-pine-600);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+/* Disabled form controls read as intentionally locked, not broken */
+input:disabled,
+select:disabled,
+textarea:disabled,
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Disclosures: replace browser marker with our own chevron treatment */
+summary {
+  list-style: none;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 4px;
+  font-size: 10px;
+  color: var(--color-ink-faint);
+  transition: transform 120ms ease;
+}
+details[open] > summary::before {
+  transform: rotate(90deg);
 }
