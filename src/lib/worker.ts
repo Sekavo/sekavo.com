@@ -9,7 +9,7 @@ const g = globalThis as unknown as { __paidhoundRunning?: boolean };
 export async function runWorkerLoop(): Promise<{ ok: true; tick: TickResult; digest: boolean }> {
   if (g.__paidhoundRunning) {
     logger.warn("worker:already_running");
-    return { ok: true, tick: { sent: 0, failed: 0, skipped: 0 }, digest: false };
+    return { ok: true, tick: { sent: 0, failed: 0, skipped: 0, requeued: 0 }, digest: false };
   }
   g.__paidhoundRunning = true;
   try {

@@ -70,9 +70,19 @@ export async function getCurrentUser() {
 
 // --- naive in-memory rate limiter (per-process; fine for MVP single instance) ---
 const attempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_TRACKED_KEYS = 10_000;
 
 export function rateLimit(key: string, limit = 10, windowMs = 5 * 60 * 1000): boolean {
   const now = Date.now();
+
+  // Periodically shed expired keys so the map can't grow unbounded
+  if (attempts.size > MAX_TRACKED_KEYS) {
+    for (const [k, v] of attempts) {
+      if (v.resetAt < now) attempts.delete(k);
+    }
+    if (attempts.size > MAX_TRACKED_KEYS * 2) attempts.clear(); // abuse fallback
+  }
+
   const entry = attempts.get(key);
   if (!entry || entry.resetAt < now) {
     attempts.set(key, { count: 1, resetAt: now + windowMs });

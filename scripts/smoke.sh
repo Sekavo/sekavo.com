@@ -45,6 +45,11 @@ check "unauthed /app → login" 307 "$(curl -s -o /dev/null -w '%{http_code}' $B
 # 8. Cron endpoint rejects bad secret
 check "cron authz" 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST $BASE/api/cron/tick -H 'Authorization: Bearer wrong')"
 
+# 9. CSRF: cross-origin mutation with Origin header is rejected
+check "cross-origin mutation blocked" 403 "$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/smoke.txt -X POST $BASE/api/invoices -H 'Origin: https://evil.example' -H 'Content-Type: application/json' -d '{}')"
+check "same-origin mutation allowed" 201 "$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/smoke.txt -X POST $BASE/api/invoices -H "Origin: $BASE" -H 'Content-Type: application/json' -d '{"customerName":"CSRF Ok","customerEmail":"csrf@x.test","number":"SMOKE-CSRF","amountCents":100,"currency":"USD","issuedAt":"2026-08-01","dueAt":"2026-09-30"}')"
+check "no-origin mutation (server client) allowed" 201 "$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/smoke.txt -X POST $BASE/api/invoices -H 'Content-Type: application/json' -d '{"customerName":"No Origin","customerEmail":"noorigin@x.test","number":"SMOKE-NOORIGIN","amountCents":100,"currency":"USD","issuedAt":"2026-08-01","dueAt":"2026-09-30"}')"
+
 echo
 echo "Passed: $PASS  Failed: $FAIL"
 [ "$FAIL" = "0" ]

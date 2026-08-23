@@ -34,7 +34,8 @@ export async function POST(req: NextRequest) {
     await dbUpdateCustomerId(user.id, customerId);
   }
 
-  const origin = process.env.APP_URL || req.headers.get("origin") || new URL(req.url).origin;
+  // APP_URL is authoritative when set; fall back to request origin only in dev
+  const origin = process.env.APP_URL || new URL(req.url).origin;
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",

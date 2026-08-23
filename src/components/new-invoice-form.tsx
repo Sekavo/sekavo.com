@@ -107,7 +107,7 @@ export function NewInvoiceForm({ defaultNewOpen }: { defaultNewOpen?: boolean })
         </p>
       )}
       <p className="mt-3 text-xs text-neutral-500">
-        Paidhound schedules: heads-up 3 days before due, a note on the due date, then follow-ups at +7/+14/+21 days. Adjust anytime in Settings.
+        Paidhound schedules: heads-up 3 days before due, a note on the due date, then follow-ups at +7/+14/+21 days. Already-overdue invoices get one catch-up email in about an hour — pause or edit it before it goes. Adjust the sequence anytime in Settings.
       </p>
     </div>
   );

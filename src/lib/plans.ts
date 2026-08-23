@@ -73,6 +73,7 @@ export const TRIAL_DAYS = 14;
 /** The plan a user is allowed to use right now (trials map to pro). */
 export function effectivePlan(plan: PlanId, status: string, trialEndsAt: Date | null): PlanDef {
   if (status === "trialing" && trialEndsAt && trialEndsAt > new Date()) return PLANS.pro;
-  if (status === "past_due") return PLANS.free;
-  return PLANS[plan] ?? PLANS.free;
+  if (status === "active") return PLANS[plan] ?? PLANS.free;
+  // trialing-but-expired, past_due, unpaid, canceled, or anything unknown → free
+  return PLANS.free;
 }

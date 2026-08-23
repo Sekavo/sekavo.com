@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-
-function csvEscape(v: unknown): string {
-  const s = String(v ?? "");
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
+import { escapeCsvCell } from "@/lib/csv";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -15,6 +11,7 @@ export async function GET() {
     where: { userId: user.id },
     include: { customer: true },
     orderBy: { createdAt: "desc" },
+    take: 10_000,
   });
 
   const header = ["invoice_number", "customer_name", "customer_email", "amount", "currency", "issue_date", "due_date", "paid_date", "status"];
@@ -30,7 +27,7 @@ export async function GET() {
       i.paidAt?.toISOString().slice(0, 10) ?? "",
       i.status,
     ]
-      .map(csvEscape)
+      .map(escapeCsvCell)
       .join(",")
   );
 

@@ -35,7 +35,10 @@ export async function POST(req: NextRequest) {
 
   let csv = "";
   try {
+    const declaredLen = Number(req.headers.get("content-length") ?? "0");
+    if (declaredLen > 2_000_000) return NextResponse.json({ error: "CSV too large (max 2MB)." }, { status: 413 });
     csv = await req.text();
+    if (csv.length > 2_000_000) return NextResponse.json({ error: "CSV too large (max 2MB)." }, { status: 413 });
   } catch {
     return NextResponse.json({ error: "Could not read request body." }, { status: 400 });
   }

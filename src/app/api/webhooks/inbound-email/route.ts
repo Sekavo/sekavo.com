@@ -34,7 +34,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await req.json().catch(() => null)) as InboundPayload | null;
+  // Bound payload size before reading (provider retries on 413 are fine)
+  const declaredLen = Number(req.headers.get("content-length") ?? "0");
+  if (declaredLen > 1_000_000) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
+  const raw = await req.text();
+  if (raw.length > 1_000_000) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
+
+  const body = JSON.parse(raw) as InboundPayload | null;
   if (!body?.from || !body.to) return NextResponse.json({ error: "Missing from/to" }, { status: 400 });
 
   const userId = extractUserIdFromRecipients(body.to);
@@ -53,8 +63,8 @@ export async function POST(req: NextRequest) {
     const result = await handleCustomerReply({
       ownerUserId: userId,
       fromEmail: fromEmail.toLowerCase(),
-      subject: body.subject ?? "(no subject)",
-      text: body.text ?? "",
+      subject: (body.subject ?? "(no subject)").slice(0, 500),
+      text: (body.text ?? "").slice(0, 20000),
     });
     if (result.handled) logEvent(userId, "inbound_reply_processed");
     return NextResponse.json({ ok: true, ...result });

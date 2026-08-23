@@ -27,11 +27,13 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     where: { userId: user.id },
     include: { customer: true },
     orderBy: [{ status: "asc" }, { dueAt: "asc" }],
+    take: 500,
   });
 
   const nextChases = await db.scheduledEmail.findMany({
     where: { status: "pending", invoice: { userId: user.id } },
     orderBy: { plannedFor: "asc" },
+    take: 1000,
   });
   const nextByInvoice = new Map<string, (typeof nextChases)[number]>();
   for (const c of nextChases) if (!nextByInvoice.has(c.invoiceId)) nextByInvoice.set(c.invoiceId, c);

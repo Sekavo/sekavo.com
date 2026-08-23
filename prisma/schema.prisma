@@ -131,6 +131,7 @@ model ConversationEvent {
   direction String? // inbound | outbound | internal
   summary   String
   rawText   String?
+  dedupKey  String?  @unique // idempotency for duplicate webhook deliveries
   occurredAt DateTime @default(now())
 
   @@index([invoiceId, occurredAt])

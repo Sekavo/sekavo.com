@@ -38,7 +38,21 @@ export async function POST(req: NextRequest) {
 
   await db.apiKey.update({ where: { id: key.id }, data: { lastUsedAt: new Date() } });
 
-  const body = await req.json().catch(() => null);
+  const declaredLen = Number(req.headers.get("content-length") ?? "0");
+  if (declaredLen > 256_000) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
+  const raw = await req.text();
+  if (raw.length > 256_000) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
+
+  let body: unknown;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+  }
   const parsed = invoiceCreateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input." }, { status: 400 });

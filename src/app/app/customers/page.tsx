@@ -16,8 +16,12 @@ export default async function CustomersPage() {
 
   const customers = await db.customer.findMany({
     where: { userId: user.id },
-    include: { invoices: true },
+    select: {
+      id: true, name: true, email: true,
+      invoices: { select: { status: true, amountCents: true, dueAt: true } },
+    },
     orderBy: { name: "asc" },
+    take: 1000,
   });
 
   const now = Date.now();

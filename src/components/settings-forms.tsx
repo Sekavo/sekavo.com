@@ -106,7 +106,7 @@ export function SettingsForms({
             <input id="senderEmail" name="senderEmail" type="email" required defaultValue={initial.senderEmail} className={input} />
           </div>
           <div>
-            <label className={label} htmlFor="replyTo">Forward replies to</label>
+            <label className={label} htmlFor="replyTo">Fallback reply address <span className="text-neutral-400">(used only if reply capture is off)</span></label>
             <input id="replyTo" name="replyTo" type="email" placeholder="you@yourdomain.com" defaultValue={initial.replyTo ?? ""} className={input} />
           </div>
           <div className="sm:col-span-2">
@@ -141,9 +141,19 @@ export function SettingsForms({
         </form>
 
         <div className="mt-4 rounded-lg bg-neutral-50 p-3 text-xs leading-relaxed text-neutral-600">
-          <strong>Replies:</strong> customers who hit &ldquo;reply&rdquo; write to{" "}
-          <code className="rounded bg-white px-1 py-0.5">{replyAddress}</code>. Paidhound detects it,
-          pauses this customer&apos;s chases and forwards the message to you.
+          <strong>Replies:</strong>{" "}
+          {replyAddress ? (
+            <>
+              customers who hit &ldquo;reply&rdquo; write to{" "}
+              <code className="rounded bg-white px-1 py-0.5">{replyAddress}</code>. Paidhound detects it,
+              pauses this customer&apos;s chases and forwards the message to you — no configuration needed.
+            </>
+          ) : (
+            <>
+              reply capture isn&apos;t configured on this deployment yet. Replies currently go to your
+              fallback address above and won&apos;t pause chasing automatically.
+            </>
+          )}
         </div>
       </Card>
 

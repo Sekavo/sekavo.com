@@ -9,7 +9,11 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "db:setup": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "test:unit": "tsx scripts/unit.test.ts",
+    "test:scenario": "./scripts/run-scenarios.sh",
+    "test:smoke": "./scripts/smoke.sh",
+    "test": "npm run test:unit && npm run test:scenario"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

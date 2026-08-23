@@ -50,7 +50,11 @@ export async function POST(req: NextRequest) {
     logEvent(user.id, "user_signup", { plan: "trial", trialDays: TRIAL_DAYS });
     await createSession(user.id);
     return NextResponse.json({ ok: true });
-  } catch (err) {
+  } catch (err: unknown) {
+    // Concurrent signups with the same email lose the unique-constraint race
+    if (typeof err === "object" && err && "code" in err && err.code === "P2002") {
+      return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
+    }
     console.error("signup failed", err);
     return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
   }

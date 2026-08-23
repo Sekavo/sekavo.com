@@ -16,8 +16,8 @@ export default async function SettingsPage() {
     user.trialEndsAt
   );
 
-  const inboundDomain = process.env.INBOUND_DOMAIN || "inbox.paidhound.com";
-  const replyAddress = `reply+${user.id}@${inboundDomain}`;
+  const inboundDomain = process.env.INBOUND_DOMAIN;
+  const replyAddress = inboundDomain ? `reply+${user.id}@${inboundDomain}` : "";
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
