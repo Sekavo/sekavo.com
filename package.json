@@ -13,7 +13,9 @@
     "test:unit": "tsx scripts/unit.test.ts",
     "test:scenario": "./scripts/run-scenarios.sh",
     "test:smoke": "./scripts/smoke.sh",
-    "test": "npm run test:unit && npm run test:scenario"
+    "test": "npm run test:unit && npm run test:scenario",
+    "db:pg:push": "prisma db push --schema prisma/schema.postgres.prisma",
+    "db:pg:migrate": "prisma migrate deploy --schema prisma/schema.postgres.prisma"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

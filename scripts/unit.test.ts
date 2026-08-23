@@ -5,6 +5,8 @@ import { effectivePlan, PLANS } from "../src/lib/plans";
 import { renderTemplate, parseSequence, sequenceFor, DEFAULT_SEQUENCE } from "../src/lib/email/templates";
 import { escapeCsvCell } from "../src/lib/csv";
 import { replyDedupKey, renderClean } from "../src/lib/engine";
+import { normalizeInboundPayload, verifySvixSignature } from "../src/lib/inbound";
+import { createHmac } from "crypto";
 
 let pass = 0;
 let fail = 0;
@@ -111,6 +113,42 @@ eq("greeting uses full customer name (companies safe)", buildTemplateVars(fakeIn
 eq("person name kept whole", buildTemplateVars(fakeInv("Sarah Chen") as never).vars.customer_name, "Sarah Chen");
 eq("first_name available for optional use", buildTemplateVars(fakeInv("Sarah Chen") as never).vars.first_name, "Sarah");
 check("days_late computed for overdue fixture", buildTemplateVars(fakeInv("X") as never).vars.days_late >= 4);
+
+// ---------- svix signature verification ----------
+const SECRET_B64 = Buffer.from("0123456789abcdef0123456789abcdef").toString("base64");
+const WHSEC = `whsec_${SECRET_B64}`;
+const NOW_S = Math.floor(Date.now() / 1000);
+function signedRequest(secretB64Bytes: string, id: string, ts: number, body: string) {
+  const mac = createHmac("sha256", Buffer.from(secretB64Bytes, "base64"))
+    .update(`${id}.${ts}.${body}`)
+    .digest("base64");
+  return { "svix-id": id, "svix-timestamp": String(ts), "svix-signature": `v1,${mac}` };
+}
+const payload = '{"type":"email.received","data":{"from":"a@b.test","to":["reply+u1@inbox.test"],"text":"paid"}}';
+const good = signedRequest(SECRET_B64, "msg_1", NOW_S, payload);
+const hdrs = { id: good["svix-id"], timestamp: good["svix-timestamp"], signature: good["svix-signature"] };
+
+eq("valid svix signature accepted", verifySvixSignature(WHSEC, hdrs, payload, Date.now()), null);
+check("tampered body rejected", verifySvixSignature(WHSEC, hdrs, payload + "x", Date.now()) !== null);
+check("wrong secret rejected", verifySvixSignature(`whsec_${Buffer.from("ffffffffffffffffffffffffffffffff").toString("base64")}`, hdrs, payload, Date.now()) !== null);
+check("stale timestamp rejected", (() => {
+  const old = signedRequest(SECRET_B64, "msg_2", NOW_S - 3600, payload);
+  return verifySvixSignature(WHSEC, { id: old["svix-id"], timestamp: old["svix-timestamp"], signature: old["svix-signature"] }, payload, Date.now()) !== null;
+})());
+check("missing headers rejected", verifySvixSignature(WHSEC, { id: null, timestamp: null, signature: null }, payload, Date.now()) !== null);
+check("plain passphrase secret also works", (() => {
+  const raw = "plain-passphrase-key";
+  const mac = createHmac("sha256", raw).update(`${hdrs.id}.${NOW_S}.${payload}`).digest("base64");
+  return verifySvixSignature(raw, { id: hdrs.id, timestamp: String(NOW_S), signature: `v1,${mac}` }, payload, Date.now()) === null;
+})());
+
+// ---------- inbound payload normalization ----------
+eq("resend nested shape normalized", normalizeInboundPayload({ type: "email.received", data: { from: "A <a@b.test>", to: ["reply+u@inbox.test"], subject: "Re: x", text: "hi" } }), { to: ["reply+u@inbox.test"], from: "A <a@b.test>", subject: "Re: x", text: "hi" });
+eq("flat shape normalized", normalizeInboundPayload({ from: "a@b.test", to: "reply+u@inbox.test", subject: "", text: "" })?.to, ["reply+u@inbox.test"]);
+eq("object to-addresses handled", normalizeInboundPayload({ from: "a@b.test", to: [{ address: "reply+u@x.t" }] })?.to, ["reply+u@x.t"]);
+check("missing from → null", normalizeInboundPayload({ to: ["x@y.z"] }) === null);
+check("missing to → null", normalizeInboundPayload({ from: "x@y.z" }) === null);
+check("garbage → null", normalizeInboundPayload(null) === null);
 
 console.log(`\nUnit: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -1,0 +1,198 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  name             String
+  businessName     String?
+  timezone         String    @default("UTC")
+  isAdmin          Boolean   @default(false)
+  trialEndsAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  settings         UserSettings?
+  customers        Customer[]
+  invoices         Invoice[]
+  subscription     Subscription?
+  apiKeys          ApiKey[]
+  events           AnalyticsEvent[]
+
+  @@map("users")
+}
+
+model UserSettings {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderName        String
+  senderEmail       String
+  replyTo           String?
+  ccOwner           Boolean  @default(false)
+  signature         String   @default("")
+  tone              String   @default("friendly")
+  businessName      String   @default("")
+  lateFeePolicy     String   @default("")
+  defaultPaymentUrl String?
+  sequence          String // JSON-encoded ChaseStep[]
+  catchUpOnLate     Boolean  @default(true)
+  pauseOnReplyDays  Int      @default(3)
+  onboardingDone    Boolean  @default(false)
+  updatedAt         DateTime @updatedAt
+
+  @@map("user_settings")
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  invoices  Invoice[]
+
+  @@unique([userId, email])
+  @@index([userId])
+  @@map("customers")
+}
+
+// status: draft | active | paid | void | disputed | bad_debt
+// source: manual | csv | stripe | qbo | api | demo
+model Invoice {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customerId   String
+  customer     Customer     @relation(fields: [customerId], references: [id])
+  number       String
+  amountCents  Int
+  currency     String       @default("USD")
+  issuedAt     DateTime
+  dueAt        DateTime
+  paidAt       DateTime?
+  status       String       @default("active")
+  source       String       @default("manual")
+  paymentUrl   String?
+  notes        String?
+  chasingEnabled Boolean    @default(true)
+  lastChasedAt DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  scheduledEmails ScheduledEmail[]
+  events          ConversationEvent[]
+
+  @@unique([userId, number])
+  @@index([userId, status, dueAt])
+  @@index([customerId])
+  @@map("invoices")
+}
+
+// status: pending | sent | skipped | cancelled | failed
+model ScheduledEmail {
+  id           String    @id @default(cuid())
+  invoiceId    String
+  invoice      Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  stepIndex    Int
+  stepLabel    String
+  subject      String
+  body         String
+  plannedFor   DateTime
+  status       String    @default("pending")
+  sentAt       DateTime?
+  error        String?
+  providerId   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status, plannedFor])
+  @@index([invoiceId])
+  @@map("scheduled_emails")
+}
+
+// type: chase_sent | reply_received | payment_reported | manual_note | system
+model ConversationEvent {
+  id        String   @id @default(cuid())
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  type      String
+  direction String? // inbound | outbound | internal
+  summary   String
+  rawText   String?
+  dedupKey  String?  @unique // idempotency for duplicate webhook deliveries
+  occurredAt DateTime @default(now())
+
+  @@index([invoiceId, occurredAt])
+  @@map("conversation_events")
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  plan                 String    @default("free") // free | starter | pro | agency
+  status               String    @default("active") // active | trialing | past_due | canceled
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  updatedAt            DateTime  @updatedAt
+
+  @@map("subscriptions")
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  hash      String   @unique
+  prefix    String
+  lastUsedAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("api_keys")
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type      String
+  meta      String?
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@map("analytics_events")
+}
+
+model OutboundEmailLog {
+  id          String    @id @default(cuid())
+  userId      String
+  toAddress   String
+  subject     String
+  bodyText    String
+  kind        String    @default("chase") // chase | digest | system
+  provider    String
+  providerId  String?
+  status      String    @default("sent")
+  error       String?
+  sentAt      DateTime  @default(now())
+
+  @@index([userId, sentAt])
+  @@map("outbound_email_logs")
+}

@@ -76,7 +76,7 @@ export default async function InvoicesPage({
         actions={<a href="/api/export" className={btn.secondary}>Export CSV</a>}
       />
 
-      <NewInvoiceForm defaultNewOpen={sp.new === "1"} defaultPaymentUrl={user.settings?.defaultPaymentUrl ?? ""} canImportCsv={planCanImport} />
+      <NewInvoiceForm defaultNewOpen={sp.new === "1"} defaultPaymentUrl={user.settings?.defaultPaymentUrl ?? ""} />
 
       {planCanImport && (
         <details className="group">

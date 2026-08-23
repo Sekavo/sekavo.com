@@ -11,11 +11,9 @@ function iso(offsetDays: number): string {
 export function NewInvoiceForm({
   defaultNewOpen,
   defaultPaymentUrl = "",
-  canImportCsv,
 }: {
   defaultNewOpen?: boolean;
   defaultPaymentUrl?: string;
-  canImportCsv?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(Boolean(defaultNewOpen));

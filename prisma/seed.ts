@@ -15,6 +15,14 @@ function daysFromNow(n: number) {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_DEMO_SEED !== "1") {
+    console.error(
+      "Refusing to seed demo credentials in production.\n" +
+        "The demo account has a well-known password.\n" +
+        "If you truly want it, run with ALLOW_DEMO_SEED=1."
+    );
+    process.exit(1);
+  }
   const email = "demo@paidhound.com";
   const existing = await db.user.findUnique({ where: { email } });
   if (existing) {

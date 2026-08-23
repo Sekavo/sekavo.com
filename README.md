@@ -62,8 +62,8 @@ active chased invoices (paid/paused/void don't count).
 
 ## Documentation
 
+- [Deployment](docs/DEPLOYMENT.md) — **production checklist**: hosting shapes, Resend domain/DNS + webhooks (Svix), Stripe, cron, first real email test. Clearly separates [AUTOMATED] from [HUMAN] steps
 - [Architecture](docs/ARCHITECTURE.md) — system design, data model, engine rules, security model
-- [Deployment](docs/DEPLOYMENT.md) — Vercel/Railway setup, Resend, Stripe, inbound replies
 - [Product & GTM](docs/PRODUCT.md) — pricing strategy, competitor analysis, ICP, acquisition plan
 - [Known weaknesses](docs/WEAKNESSES.md) — honest list of what would block growth
 

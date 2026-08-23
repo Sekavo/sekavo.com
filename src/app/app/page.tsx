@@ -74,7 +74,7 @@ export default async function DashboardPage() {
   });
   const maxBucket = Math.max(...buckets.map((b) => b.total), 1);
 
-  const [nextChases, activity, failedSends, totalInvoices] = await Promise.all([
+  const [nextChases, activity, failedSends, totalInvoices, bouncedCount] = await Promise.all([
     db.scheduledEmail.findMany({
       where: { status: "pending", invoice: { userId: user.id } },
       include: { invoice: { include: { customer: true } } },
@@ -94,6 +94,9 @@ export default async function DashboardPage() {
       take: 3,
     }),
     db.invoice.count({ where: { userId: user.id } }),
+    db.outboundEmailLog.count({
+      where: { userId: user.id, kind: "chase", status: "bounced", sentAt: { gte: new Date(Date.now() - 30 * 86_400_000) } },
+    }),
   ]);
 
   const sub = user.subscription;
@@ -116,6 +119,12 @@ export default async function DashboardPage() {
       />
 
       {/* Delivery failures — never hide these */}
+      {bouncedCount > 0 && (
+        <div className="border border-caution/30 bg-caution-bg px-4 py-2.5 text-sm text-caution">
+          <strong className="font-semibold">{bouncedCount}</strong> chase email{bouncedCount === 1 ? "" : "s"} bounced
+          in the last 30 days — the address may be wrong or the mailbox full.
+        </div>
+      )}
       {failedSends.length > 0 && (
         <div className="border border-overdue/30 bg-overdue-bg px-4 py-3 text-sm text-overdue">
           <p className="font-semibold">
