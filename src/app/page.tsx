@@ -27,13 +27,13 @@ function SectionHead({
   );
 }
 
-/** The hero mock — Paidhound's chase view rendered as real UI, not a screenshot. */
+/** The hero mock — Sekavo's chase view rendered as real UI, not a screenshot. */
 function HeroMock() {
   return (
     <div className="border border-line-strong bg-white shadow-[0_1px_2px_rgba(20,24,28,0.06),0_12px_32px_-16px_rgba(20,24,28,0.18)]">
       {/* window chrome */}
       <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5">
-        <span className="font-mono text-xs text-ink-faint">paidhound · invoices / INV-1042</span>
+        <span className="font-mono text-xs text-ink-faint">sekavo · invoices / INV-1042</span>
         <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-pine-700">3 chases queued</span>
       </div>
 
@@ -127,8 +127,8 @@ export default function LandingPage() {
               Get paid without asking twice.
             </h1>
             <p className="mt-4 max-w-lg text-[16px] leading-relaxed text-ink-soft">
-              Paidhound chases your unpaid invoices with polite, escalating email sequences that
-              pause the moment a customer replies. You did the work — stop doing the asking.
+              Sekavo follows up on your unpaid invoices automatically — polite, escalating sequences
+              that pause the moment a customer replies. You did the work; the follow-up happens without you.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
               <Link href="/signup" className="bg-pine-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-pine-800">
@@ -177,7 +177,7 @@ export default function LandingPage() {
             </div>
             <p className="mt-4 text-[15px] leading-relaxed text-ink-soft">
               Large companies remind everyone, consistently, in escalating tones, without emotion.
-              That consistency is exactly why they get paid first. Paidhound gives you the same
+              That consistency is exactly why they get paid first. Sekavo gives you the same
               discipline — written once, running forever, pausing the second a human replies.
             </p>
           </div>
@@ -194,7 +194,7 @@ export default function LandingPage() {
           <div className="mt-12 grid gap-x-10 gap-y-10 md:grid-cols-3">
             {[
               ["Add the invoice", "Type it in, import a CSV, or push it through the API. Customer, amount, due date — that's the whole form."],
-              ["Paidhound builds the schedule", "A courtesy note three days before due, a word on the day itself, then firm-but-professional follow-ups at +7, +14 and +21."],
+              ["Sekavo builds the schedule", "A courtesy note three days before due, a word on the day itself, then firm-but-professional follow-ups at +7, +14 and +21."],
               ["You watch replies arrive", "Any customer response pauses their sequence automatically and lands in your activity log. Mark paid — everything cancels instantly."],
             ].map(([title, body], i) => (
               <div key={title} className="border-t-2 border-ink pt-5">
@@ -221,7 +221,7 @@ export default function LandingPage() {
             fromName="Acme Design Studio"
             fromEmail="maya@acmedesign.studio"
             toEmail="billing@bigco.example"
-            replyTo="reply+dK9x@inbox.paidhound.com"
+            replyTo="reply+dK9x@inbox.sekavo.com"
             subject={"Following up on invoice INV-1042 ($3,850)"}
             body={`Hi Sarah,
 

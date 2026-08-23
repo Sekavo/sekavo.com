@@ -53,7 +53,7 @@ export function AuthShell({
           {children}
         </div>
         <p className="text-center text-xs text-ink-faint">
-          <Link href="/" className="hover:text-ink hover:underline">← Back to paidhound.com</Link>
+          <Link href="/" className="hover:text-ink hover:underline">← Back to sekavo.com</Link>
         </p>
       </div>
 

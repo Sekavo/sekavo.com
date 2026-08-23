@@ -126,7 +126,7 @@ export function NewInvoiceForm({
         </p>
       )}
       <p className="border-t border-line px-4 py-2.5 text-xs leading-relaxed text-ink-faint">
-        Paidhound schedules a heads-up 3 days before the due date, a note on the day, then follow-ups at +7 / +14 / +21 days.
+        Sekavo schedules a heads-up 3 days before the due date, a note on the day, then follow-ups at +7 / +14 / +21 days.
         Overdue invoices get one catch-up email in about an hour — pause or edit it before it goes.
       </p>
     </div>

@@ -1,5 +1,10 @@
 # Product: positioning, pricing, competition
 
+> **Sekavo** is a financial workflow tool: it runs professional invoice
+> follow-ups on the business owner's behalf — escalating politely, pausing for
+> replies, and stopping the instant an invoice is paid. It is an assistant,
+> not a debt collector.
+
 ## The problem (why this is worth money)
 
 Getting paid late is not an inconvenience — it's a cash-flow tax on small businesses:
@@ -34,7 +39,7 @@ weeks off $60k/yr billed ≈ **$2,300 of working capital released**, against a $
 
 Differentiators vs the obvious alternatives:
 1. **Works with anything** — no accounting-suite lock-in (Chaser/Trove/Paidnice all require Xero/QBO/Sage).
-2. **Reply-aware** — native reminders fire blindly into an argument already answered; Paidhound snoozes when the customer responds.
+2. **Reply-aware** — native reminders fire blindly into an argument already answered; Sekavo snoozes when the customer responds.
 3. **Self-serve at freelancer price** — Chaser starts at $259/mo; Upflow ~$440/mo quote-only; Trove £50/mo but Xero-centric and UK-focused.
 4. **Escalation done professionally** — five written tones from courtesy to final notice, editable word-by-word.
 
@@ -89,7 +94,7 @@ Sources: vendor pricing pages and Accounting.Events AR review (June 2026), Trove
    "late fee calculator" (UK statutory interest math is a magnet), "how to ask a
    client for payment" — each ends with the product CTA.
 5. **Integration listings**: Xero app store / QBC apps marketplace once native sync ships.
-6. **Footer loop**: every Free-tier email carries "Chased by Paidhound" — recipients
+6. **Footer loop**: every Free-tier email carries "Chased by Sekavo" — recipients
    are exactly the ICP (they owe money *and* invoice others).
 
 ### Product-led automation

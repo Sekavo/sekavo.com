@@ -35,7 +35,7 @@ Both shapes ship in this repo. Do not mix: serverless + SQLite will lose data.
 ## 2. Email sending (Resend) — [HUMAN] config, [AUTOMATED] code
 
 1. [HUMAN] Create an API key → `RESEND_API_KEY`.
-2. [HUMAN] Choose `EMAIL_FROM`, e.g. `"Paidhound <chase@notify.yourdomain.com>"`.
+2. [HUMAN] Choose `EMAIL_FROM`, e.g. `"Sekavo <chase@notify.yourdomain.com>"`.
 3. [AUTOMATED] Sending uses the Resend HTTP API; every message is persisted
    to `outbound_email_logs` with its provider id.
 4. [AUTOMATED] Every chase carries `Reply-To: reply+<userId>@<INBOUND_DOMAIN>`
@@ -160,7 +160,7 @@ Requires completed sections 1–3 and one real inbox you control (e.g. Gmail).
 7. Mark the invoice paid in the dashboard: all scheduled chases flip to
    Cancelled and no further email sends.
 
-Until step 4 succeeds against real mailboxes, Paidhound is NOT production-
+Until step 4 succeeds against real mailboxes, Sekavo is NOT production-
 ready — do not skip this because unit tests pass.
 
 ## 11. Security posture (verified in-repo)

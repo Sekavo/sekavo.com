@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const body = normalizeInboundPayload(parsed);
   if (!body) return NextResponse.json({ error: "Missing from/to" }, { status: 400 });
 
-  // Locate the Paidhound mailbox this reply was sent to: reply+<userId>@domain
+  // Locate the Sekavo mailbox this reply was sent to: reply+<userId>@domain
   const domain = (process.env.INBOUND_DOMAIN || "").toLowerCase();
   let userId: string | null = null;
   for (const addr of body.to) {

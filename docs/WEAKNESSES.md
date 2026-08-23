@@ -4,7 +4,7 @@ Written to be disproven. Each item lists the mitigation that exists today and
 what would be required to fully close the gap.
 
 ## 1. Sending domain is ours, not theirs (deliverability + trust)
-Chase emails originate from a Paidhound-managed domain signed with the user's
+Chase emails originate from a Sekavo-managed domain signed with the user's
 business identity. Some customers will notice.
 - **Mitigation today:** full email previews in-app, CC-me option, clear signature.
 - **To close:** bring-your-own-domain via per-user Resend domain verification;

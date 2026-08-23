@@ -145,7 +145,7 @@ export function IdentityForm({
         {replyAddress ? (
           <p className="mt-3 border-l-2 border-pine-300 bg-white px-4 py-2.5 text-[13px] leading-relaxed text-ink-soft">
             Reply capture is active. Customers who hit “reply” write to{" "}
-            <code className="bg-paper-sunken px-1 py-0.5 font-mono text-xs">{replyAddress}</code> — Paidhound pauses their chases and forwards the message to your account email.
+            <code className="bg-paper-sunken px-1 py-0.5 font-mono text-xs">{replyAddress}</code> — Sekavo pauses their chases and forwards the message to your account email.
           </p>
         ) : (
           <p className="mt-3 border-l-2 border-line-strong bg-white px-4 py-2.5 text-[13px] leading-relaxed text-ink-faint">

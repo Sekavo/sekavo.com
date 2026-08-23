@@ -25,7 +25,7 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; id?: str
     let id: string | undefined;
     if (resend) {
       const res = await resend.emails.send({
-        from: process.env.EMAIL_FROM || "Paidhound <onboarding@resend.dev>",
+        from: process.env.EMAIL_FROM || "Sekavo <onboarding@resend.dev>",
         to: [args.to],
         subject: args.subject,
         text: args.text,

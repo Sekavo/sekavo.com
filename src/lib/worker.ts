@@ -3,21 +3,21 @@ import { runTick, type TickResult } from "./engine";
 import { sendEmail } from "./email/sender";
 import { logger } from "./logger";
 
-const g = globalThis as unknown as { __paidhoundRunning?: boolean };
+const g = globalThis as unknown as { __sekavoRunning?: boolean };
 
 /** Single-flight worker loop; safe to call from cron and API simultaneously. */
 export async function runWorkerLoop(): Promise<{ ok: true; tick: TickResult; digest: boolean }> {
-  if (g.__paidhoundRunning) {
+  if (g.__sekavoRunning) {
     logger.warn("worker:already_running");
     return { ok: true, tick: { sent: 0, failed: 0, skipped: 0, requeued: 0 }, digest: false };
   }
-  g.__paidhoundRunning = true;
+  g.__sekavoRunning = true;
   try {
     const tick = await runTick();
     const digest = await maybeSendDailyDigest();
     return { ok: true, tick, digest };
   } finally {
-    g.__paidhoundRunning = false;
+    g.__sekavoRunning = false;
   }
 }
 
@@ -70,8 +70,8 @@ async function maybeSendDailyDigest(): Promise<boolean> {
     await sendEmail({
       userId: user.id,
       to: user.email,
-      subject: `[Paidhound] Daily chase report — ${sentToday} sent, ${repliesToday} repl${repliesToday === 1 ? "y" : "ies"}`,
-      text: `Here's what Paidhound did in the last 24 hours:\n\n- Chase emails sent: ${sentToday}\n- Customer replies received: ${repliesToday}\n- Active invoices being chased: ${activeInvoices}\n- Overdue balance outstanding: ${overdueLine}\n\nOpen your dashboard to review replies and mark paid invoices.`,
+      subject: `[Sekavo] Daily chase report — ${sentToday} sent, ${repliesToday} repl${repliesToday === 1 ? "y" : "ies"}`,
+      text: `Here's what Sekavo did in the last 24 hours:\n\n- Chase emails sent: ${sentToday}\n- Customer replies received: ${repliesToday}\n- Active invoices being chased: ${activeInvoices}\n- Overdue balance outstanding: ${overdueLine}\n\nOpen your dashboard to review replies and mark paid invoices.`,
       kind: "digest",
     });
     await db.analyticsEvent.create({ data: { userId: user.id, type: "digest_sent", meta: JSON.stringify({ sentToday, repliesToday }) } });

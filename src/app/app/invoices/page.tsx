@@ -119,7 +119,7 @@ export default async function InvoicesPage({
       {visible.length === 0 ? (
         counts.all === 0 ? (
           <EmptyState title="No invoices yet" action={<Link href="/app/invoices?new=1" className={btn.primary}>Add your first invoice</Link>}>
-            Add the invoices people owe you — Paidhound builds a chase schedule for each one automatically.
+            Add the invoices people owe you — Sekavo builds a chase schedule for each one automatically.
           </EmptyState>
         ) : (
           <EmptyState title="Nothing here">No invoices match this filter.</EmptyState>

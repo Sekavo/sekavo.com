@@ -173,7 +173,7 @@ export function SequenceEditor({
         </div>
         {!canEdit && (
           <p className="mt-3 text-xs leading-relaxed text-ink-faint">
-            You&apos;re viewing the default Paidhound sequence. Upgrade to Starter to edit wording, timing, and add steps.
+            You&apos;re viewing the default Sekavo sequence. Upgrade to Starter to edit wording, timing, and add steps.
           </p>
         )}
       </section>

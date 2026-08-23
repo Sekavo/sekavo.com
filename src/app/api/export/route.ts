@@ -34,7 +34,7 @@ export async function GET() {
   return new NextResponse([header.join(","), ...rows].join("\n"), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="paidhound-invoices-${new Date().toISOString().slice(0, 10)}.csv"`,
+      "Content-Disposition": `attachment; filename="sekavo-invoices-${new Date().toISOString().slice(0, 10)}.csv"`,
     },
   });
 }

@@ -81,7 +81,7 @@
 
 `sendEmail()` writes to `outbound_email_logs` regardless of outcome. Provider
 adapter: Resend HTTP API when `RESEND_API_KEY` is set; otherwise a console sink
-for local development. Chase emails include a Paidhound footer unless the user's
+for local development. Chase emails include a Sekavo footer unless the user's
 plan strips it (white-label).
 
 ## Auth & security

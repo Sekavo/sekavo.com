@@ -20,12 +20,28 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://sekavo.com"),
   title: {
-    default: "Paidhound — invoice chasing on autopilot",
-    template: "%s · Paidhound",
+    default: "Sekavo — Get paid without the chasing.",
+    template: "%s · Sekavo",
   },
   description:
-    "Paidhound follows up on your unpaid invoices with polite, escalating email sequences — and stops the moment a customer replies. Built for freelancers, consultants, and small studios.",
+    "Sekavo follows up on your unpaid invoices automatically — polite, escalating sequences that pause the moment a customer replies. Built for freelancers, consultants and small studios who'd rather do the work than chase it.",
+  openGraph: {
+    title: "Sekavo — Get paid without the chasing.",
+    description:
+      "Automated invoice follow-ups that stay professional, pause when customers reply, and cancel the moment you're paid. For freelancers, consultants and small agencies.",
+    url: "https://sekavo.com",
+    siteName: "Sekavo",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sekavo — Get paid without the chasing.",
+    description:
+      "Automated invoice follow-ups that stay professional, pause when customers reply, and cancel the moment you're paid.",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

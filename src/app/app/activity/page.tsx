@@ -55,7 +55,7 @@ export default async function ActivityPage({
     <div className="space-y-6">
       <PageHeader
         title="Activity"
-        description="Everything Paidhound sent, every reply that came back — newest first."
+        description="Everything Sekavo sent, every reply that came back — newest first."
       />
 
       <nav className="flex gap-5 border-b border-line">

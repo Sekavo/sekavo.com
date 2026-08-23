@@ -99,7 +99,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
         {mode === "signup" ? (
           <>Already have an account? <Link href="/login" className="font-medium text-pine-700 hover:underline">Log in</Link></>
         ) : (
-          <>New to Paidhound? <Link href="/signup" className="font-medium text-pine-700 hover:underline">Start free trial</Link></>
+          <>New to Sekavo? <Link href="/signup" className="font-medium text-pine-700 hover:underline">Start free trial</Link></>
         )}
       </p>
     </div>

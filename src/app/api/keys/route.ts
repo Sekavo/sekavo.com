@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const name = typeof body?.name === "string" && body.name.trim() ? body.name.trim().slice(0, 60) : "default";
 
-  const raw = `ph_live_${randomBytes(24).toString("hex")}`;
+  const raw = `skv_live_${randomBytes(24).toString("hex")}`;
   const hash = createHash("sha256").update(raw).digest("hex");
   const key = await db.apiKey.create({
     data: { userId: user.id, name, hash, prefix: raw.slice(0, 12) },

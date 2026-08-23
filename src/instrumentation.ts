@@ -1,8 +1,8 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  const g = globalThis as unknown as { __paidhoundCron?: boolean };
-  if (g.__paidhoundCron) return;
-  g.__paidhoundCron = true;
+  const g = globalThis as unknown as { __sekavoCron?: boolean };
+  if (g.__sekavoCron) return;
+  g.__sekavoCron = true;
 
   if (process.env.DISABLE_INTERNAL_CRON === "1") return;
 

@@ -109,7 +109,7 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       <PageHeader
         title="Receivables"
-        description="What you're owed, what's late, and what Paidhound is doing about it right now."
+        description="What you're owed, what's late, and what Sekavo is doing about it right now."
         actions={
           <>
             <Link href="/app/invoices" className={btn.secondary}>All invoices</Link>
@@ -160,7 +160,7 @@ export default async function DashboardPage() {
             <li className="flex items-start gap-3">
               <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center border border-line-strong text-[11px] font-semibold text-ink-faint">2</span>
               <p className="text-sm leading-relaxed text-ink-soft">
-                <span className="font-medium text-ink">Add the invoice you&apos;re waiting on.</span> Paidhound schedules the full sequence immediately —{" "}
+                <span className="font-medium text-ink">Add the invoice you&apos;re waiting on.</span> Sekavo schedules the full sequence immediately —{" "}
                 <Link href="/app/invoices?new=1" className="font-medium text-pine-700 hover:underline">add it now →</Link>
               </p>
             </li>
@@ -213,7 +213,7 @@ export default async function DashboardPage() {
             <Surface>
               {attention.length === 0 ? (
                 <p className="px-4 py-8 text-center text-sm text-ink-faint">
-                  Nothing is overdue. Paidhound keeps it that way.
+                  Nothing is overdue. Sekavo keeps it that way.
                 </p>
               ) : (
                 <table className="w-full">

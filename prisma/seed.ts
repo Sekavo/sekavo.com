@@ -1,7 +1,8 @@
 /**
  * Seeds a demo account with realistic data so the product can be evaluated
  * immediately: `npm run db:seed`
- * Credentials: demo@paidhound.com / demopass123
+ * Credentials: demo@sekavo.test / demopass123
+ * (.test is a reserved TLD — the demo mailbox can never receive real mail.)
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -23,7 +24,7 @@ async function main() {
     );
     process.exit(1);
   }
-  const email = "demo@paidhound.com";
+  const email = "demo@sekavo.test";
   const existing = await db.user.findUnique({ where: { email } });
   if (existing) {
     console.log("Demo account already exists — skipping seed.");
@@ -174,7 +175,7 @@ async function main() {
   }
 
   console.log("Seeded demo account:");
-  console.log("  email:    demo@paidhound.com");
+  console.log("  email:    demo@sekavo.test");
   console.log("  password: demopass123");
 }
 

@@ -15,7 +15,7 @@ export default function PricingPage() {
           One metric: invoices being actively chased.
         </h1>
         <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-soft">
-          You pay for the invoices Paidhound is working on right now. The moment one is paid,
+          You pay for the invoices Sekavo is working on right now. The moment one is paid,
           paused or closed, it frees up capacity. Every account starts with 14 days of Pro —
           no card required.
         </p>
@@ -52,10 +52,10 @@ export default function PricingPage() {
           <h2 className="text-lg font-semibold">Questions people ask before paying</h2>
           <dl className="mt-5 max-w-3xl space-y-6">
             {[
-              ["Will my customers see “Paidhound”?", "Emails are signed with your business name and your signature. On Free and Starter plans a single footer line mentions Paidhound; Pro and Agency remove it completely."],
+              ["Will my customers see “Sekavo”?", "Emails are signed with your business name and your signature. On Free and Starter plans a single footer line mentions Sekavo; Pro and Agency remove it completely."],
               ["Can I stop everything instantly?", "Yes. Pause an invoice with one click or mark it paid — every scheduled email cancels immediately, including ones queued seconds away."],
               ["What if a customer replies mid-sequence?", "Chasing pauses automatically for your chosen grace window and the reply is forwarded to you. If nothing is resolved by then, the ladder resumes."],
-              ["Do I have to change how I invoice?", "No. Paidhound sits on top of whatever you use today — QuickBooks, Xero, FreshBooks, Wave, Stripe payment links, PDFs from Word."],
+              ["Do I have to change how I invoice?", "No. Sekavo sits on top of whatever you use today — QuickBooks, Xero, FreshBooks, Wave, Stripe payment links, PDFs from Word."],
             ].map(([q, a]) => (
               <div key={q} className="border-b border-line pb-5 last:border-b-0">
                 <dt className="font-medium">{q}</dt>

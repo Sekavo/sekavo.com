@@ -43,13 +43,13 @@ export function SiteFooter() {
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">Company</p>
               <ul className="space-y-1.5 text-ink-soft">
                 <li><Link href="/login" className="hover:text-ink">Log in</Link></li>
-                <li><a href="mailto:support@paidhound.com" className="hover:text-ink">Support</a></li>
+                <li><a href="mailto:support@sekavo.com" className="hover:text-ink">Support</a></li>
               </ul>
             </div>
           </div>
         </div>
         <div className="mt-10 border-t border-line pt-5 text-xs text-ink-faint">
-          © {new Date().getFullYear()} Paidhound. Late payments are a choice your customers make; chasing them needn&apos;t be yours.
+          © {new Date().getFullYear()} Sekavo. Late payments are a choice your customers make; chasing them needn&apos;t be yours.
         </div>
       </div>
     </footer>

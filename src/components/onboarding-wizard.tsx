@@ -136,7 +136,7 @@ export function OnboardingWizard({ initial, defaults }: Props) {
           }}
         >
           <p className="text-sm leading-relaxed text-ink-soft">
-            Add one real invoice you&apos;re waiting on. Paidhound schedules the full sequence immediately — you can pause it any time.
+            Add one real invoice you&apos;re waiting on. Sekavo schedules the full sequence immediately — you can pause it any time.
           </p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Field label="Customer name" htmlFor="ob-cname">

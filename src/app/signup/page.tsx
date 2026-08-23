@@ -8,7 +8,7 @@ export default function SignupPage() {
     <AuthShell
       side={{
         title: "“I used to lose sleep over unpaid invoices. Now I just watch the replies come in.”",
-        sub: "Paidhound chases politely, escalates professionally, and knows when to stop — so your relationships stay intact while your cash arrives faster.",
+        sub: "Follow-ups that happen without you — polite where it counts, firm when it matters, and paused the moment a customer replies.",
       }}
     >
       <AuthForm mode="signup" />

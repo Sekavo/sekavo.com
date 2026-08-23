@@ -1,8 +1,12 @@
-# Paidhound
+# Sekavo
 
-**Automated invoice chasing for freelancers, consultants and micro-agencies.**
+**Invoice follow-ups that happen without you.**
 
-You did the work. Paidhound does the asking: polite, persistent, escalating email
+Sekavo is a financial workflow tool for freelancers, consultants and micro-agencies:
+it automates polite, escalating invoice reminders — and gets out of the way the
+moment a customer replies.
+
+You did the work. Sekavo does the follow-up: polite, persistent, escalating email
 follow-ups on your unpaid invoices — with reply detection that stops chasing the
 moment a customer responds, payment links in every reminder, and a cash dashboard
 that shows exactly what's outstanding and how late it is.
@@ -14,7 +18,7 @@ that shows exactly what's outstanding and how late it is.
 - Dedicated AR tools cost **$69–$900+/month** and target companies with finance teams.
   Native QuickBooks/Xero reminders are free but static, reply-blind, and easy to ignore.
 
-Paidhound occupies the gap: **$19/month, self-serve, works with any invoicing method**
+Sekavo occupies the gap: **$19/month, self-serve, works with any invoicing method**
 (QuickBooks, Xero, FreshBooks, Wave, Stripe payment links, PDFs…), and it actually
 *responds to customer behavior* instead of firing blind schedules.
 
@@ -28,7 +32,11 @@ npm run db:seed               # optional demo data
 npm run dev                   # http://localhost:3000
 ```
 
-Demo login (after seeding): `demo@paidhound.com` / `demopass123`
+Demo login (after seeding): `demo@sekavo.test` / `demopass123`
+
+> The demo address uses the reserved `.test` TLD — it can never receive real mail,
+> so seeding it can never trigger real outbound email. Production seeds are
+> blocked unless explicitly overridden (`ALLOW_DEMO_SEED=1`).
 
 Without an email provider configured, chase emails are written to the
 `outbound_email_logs` table and logged to the console — so you can exercise the
@@ -52,7 +60,7 @@ full product locally. The in-app worker runs every minute via `src/instrumentati
 
 | Plan | Price | Active chased invoices | Highlights |
 |---|---|---|---|
-| Free | $0 | 3 | Full engine, default sequence, Paidhound footer |
+| Free | $0 | 3 | Full engine, default sequence, Sekavo footer |
 | Starter | $19/mo | 25 | Custom sequences, CSV import |
 | Pro | $49/mo | 100 | API access, white-label footer |
 | Agency | $149/mo | 500 | For bookkeepers managing client AR |

@@ -81,7 +81,7 @@ export function PlanTable({
                       {p.customTemplates && <li>Custom sequence editor</li>}
                       {p.csvImport && <li>CSV import</li>}
                       {p.apiAccess && <li>REST API</li>}
-                      {p.removeBranding && <li>White-label — no Paidhound footer</li>}
+                      {p.removeBranding && <li>White-label — no Sekavo footer</li>}
                     </ul>
                   </td>
                   <td className="px-4 py-3.5 text-right">

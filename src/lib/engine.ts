@@ -7,7 +7,7 @@ import { renderTemplate, sequenceFor, type TemplateVars } from "./email/template
 import { effectivePlan } from "./plans";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const BRANDING_FOOTER = "\n\n—\nChased automatically by Paidhound. Stop chasing, start getting paid.";
+const BRANDING_FOOTER = "\n\n—\nFollowed up automatically by Sekavo.";
 /** Delay before a catch-up email fires on overdue invoices — gives users a window to pause. */
 export const CATCHUP_DELAY_MS = 60 * 60 * 1000;
 /** Claims older than this are considered abandoned (crash recovery) and requeued. */
@@ -27,7 +27,7 @@ function fmtMoney(cents: number, currency: string) {
 
 /**
  * The address customers reply to when they hit "reply" on a chase email.
- * Replies land here so Paidhound can detect them; the owner is forwarded
+ * Replies land here so Sekavo can detect them; the owner is forwarded
  * the content. Returns undefined when inbound replies aren't configured.
  */
 export function captureAddressFor(userId: string): string | undefined {
@@ -518,7 +518,7 @@ export async function handleCustomerReply(opts: {
     await sendEmail({
       userId: owner.id,
       to: owner.email,
-      subject: `[Paidhound] ${customer.name} replied: ${opts.subject.slice(0, 80)}`,
+      subject: `[Sekavo] ${customer.name} replied: ${opts.subject.slice(0, 80)}`,
       text: `${customer.name} (${customer.email}) replied to a chase.\n\nSubject: ${opts.subject}\n\n---\n${opts.text.slice(0, 2000)}\n---\n\nOpen chases for this customer were snoozed ${(owner.settings?.pauseOnReplyDays ?? 3)} day(s). Review it in your dashboard.`,
       kind: "system",
     });

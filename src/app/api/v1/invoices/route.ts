@@ -21,7 +21,7 @@ async function authenticate(req: NextRequest) {
 
 /**
  * Public API (Pro+): create an invoice and start chasing it.
- * POST /api/v1/invoices   Authorization: Bearer ph_live_...
+ * POST /api/v1/invoices   Authorization: Bearer skv_live_...
  */
 export async function POST(req: NextRequest) {
   const key = await authenticate(req);

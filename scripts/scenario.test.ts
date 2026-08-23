@@ -203,7 +203,7 @@ async function main() {
     const logs = await db.outboundEmailLog.count({ where: { userId: u.id, kind: "chase", status: "sent" } });
     check("canceled pro → free cap applies (≤3)", logs <= 3, `logs=${logs}`);
     const brandingLeak = await db.outboundEmailLog.findFirst({ where: { userId: u.id, kind: "chase" } });
-    check("free branding footer present after downgrade", !!brandingLeak?.bodyText.includes("Paidhound"));
+    check("free branding footer shows Sekavo after downgrade", !!brandingLeak?.bodyText.includes("Sekavo"));
     await db.user.delete({ where: { id: u.id } });
   }
 

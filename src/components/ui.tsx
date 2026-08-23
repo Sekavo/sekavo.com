@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 /* ------------------------------------------------------------------ */
-/*  Paidhound design system                                            */
+/*  Sekavo design system                                               */
 /*  Editorial-financial: hairlines, sharp corners, tracked eyebrows,   */
 /*  serif display, tabular figures. Color carries meaning only.        */
 /* ------------------------------------------------------------------ */
@@ -21,11 +21,12 @@ export function Wordmark({
   href?: string;
 }) {
   return (
-    <Link href={href} className={cn("inline-flex items-baseline gap-[3px] select-none", className)}>
+    <Link href={href} className={cn("inline-flex items-baseline gap-[2px] select-none", className)} aria-label="Sekavo">
       <span className="font-display text-[21px] font-semibold leading-none tracking-[-0.01em] text-ink">
-        Paidhound
+        Sekavo
       </span>
-      <span aria-hidden className="h-[5px] w-[5px] translate-y-[-1px] rounded-full bg-pine-600" />
+      {/* the period is part of the wordmark: Sekavo. */}
+      <span aria-hidden className="h-[6px] w-[6px] rounded-full bg-pine-600" />
     </Link>
   );
 }

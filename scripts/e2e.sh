@@ -1,5 +1,5 @@
 #!/bin/bash
-# End-to-end: Maya Chen's first day on Paidhound (Phase 14 acceptance run).
+# End-to-end: Maya Chen's first day on Sekavo (Phase 14 acceptance run).
 # Boots its own server on :3100 with the internal cron disabled so the test
 # controls exactly when chases fire. Usage: ./scripts/e2e.sh
 set -e
@@ -16,7 +16,7 @@ EMAIL="maya.e2e.${RAND}@test.local"
 
 # ---- boot isolated server ----
 pkill -f "next start.*$PORT" 2>/dev/null || true
-DISABLE_INTERNAL_CRON=1 PORT=$PORT nohup npx next start -p $PORT > /tmp/paidhound-e2e.log 2>&1 &
+DISABLE_INTERNAL_CRON=1 PORT=$PORT nohup npx next start -p $PORT > /tmp/sekavo-e2e.log 2>&1 &
 E2E_PID=$!
 trap 'kill $E2E_PID 2>/dev/null || true' EXIT
 sleep 4
@@ -79,7 +79,7 @@ echo "$SUBJ" | grep -E -qi "nudge|following up" && check "tone matches lateness 
 
 echo "— Customer replies; sequence must pause —"
 INBOUND_DOMAIN=$(grep INBOUND_DOMAIN .env | cut -d'"' -f2)
-PAYLOAD='{"to":["reply+'"$USER_ID"'@'"${INBOUND_DOMAIN:-inbox.paidhound.com}"'"],"from":"Billing <billing@lumen.example>","subject":"Re: MC-2087","text":"Hi Maya — approved this morning, payment runs Friday."}'
+PAYLOAD='{"to":["reply+'"$USER_ID"'@'"${INBOUND_DOMAIN:-inbox.sekavo.com}"'"],"from":"Billing <billing@lumen.example>","subject":"Re: MC-2087","text":"Hi Maya — approved this morning, payment runs Friday."}'
 curl -s -X POST $BASE/api/webhooks/inbound-email -H "x-webhook-secret: dev-inbound-secret" -H 'Content-Type: application/json' -d "$PAYLOAD" > /dev/null
 REPLIES=$(sql "SELECT COUNT(*) FROM conversation_events WHERE type='reply_received' AND invoiceId='$INV_ID'")
 check "reply logged once" 1 "$REPLIES"

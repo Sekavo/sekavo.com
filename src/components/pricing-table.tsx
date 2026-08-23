@@ -8,7 +8,7 @@ const FEATURES = (p: (typeof PLANS)[keyof typeof PLANS]) =>
     "Reply detection · payment links · daily digest",
     p.csvImport ? "CSV import" : null,
     p.apiAccess ? "REST API" : null,
-    p.removeBranding ? "White-label emails" : "Paidhound footer on emails",
+    p.removeBranding ? "White-label emails" : "Sekavo footer on emails",
   ].filter(Boolean) as string[];
 
 export function PricingTable({ cta }: { cta: "signup" | "choose" }) {
@@ -79,17 +79,17 @@ export function ComparisonStrip() {
     ["Upflow", "~$440/mo", "Quote-only, annual contracts"],
     ["Paidnice", "$69/mo", "Requires Xero or QuickBooks"],
     ["Native reminders", "Free", "Static schedules, blind to replies"],
-    ["Paidhound", "$19–149/mo", "Self-serve, works with anything, reply-aware"],
+    ["Sekavo", "$19–149/mo", "Self-serve, works with anything, reply-aware"],
   ];
   return (
     <div className="border border-line bg-white">
       <table className="w-full">
         <tbody>
           {rows.map(([name, price, note]) => (
-            <tr key={name} className={cn("border-b border-line last:border-b-0", name === "Paidhound" && "bg-pine-50/50")}>
-              <td className={cn("px-5 py-3 text-sm", name === "Paidhound" ? "font-semibold" : "font-medium")}>
+            <tr key={name} className={cn("border-b border-line last:border-b-0", name === "Sekavo" && "bg-pine-50/50")}>
+              <td className={cn("px-5 py-3 text-sm", name === "Sekavo" ? "font-semibold" : "font-medium")}>
                 {name}
-                {name === "Paidhound" && (
+                {name === "Sekavo" && (
                   <span aria-hidden className="ml-1.5 inline-block h-[5px] w-[5px] rounded-full bg-pine-600" />
                 )}
               </td>
