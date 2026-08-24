@@ -14,7 +14,7 @@ No real secrets live in this repository.
 | Shape | Database | Worker | Notes |
 |---|---|---|---|
 | **A. Single-node host** (Railway / Fly.io / VPS) | SQLite on a mounted volume (`file:/app/data/prod.db`) | Built-in `node-cron` (do **not** set `DISABLE_INTERNAL_CRON`) | Simplest. One process owns writes; ideal for first customers. |
-| **B. Serverless** (Vercel, incl. Hobby) | PostgreSQL (Neon/Supabase/Vercel Postgres) via `prisma/schema.postgres.prisma` | External scheduler → `/api/cron/tick` every minute (see §7) | Required because serverless filesystems are ephemeral. |
+| **B. Serverless** (Vercel, incl. Hobby) | PostgreSQL (Neon/Supabase) — schema at `prisma/postgres/schema.prisma` | External scheduler → `/api/cron/tick` every minute (see §7) | Required because serverless filesystems are ephemeral. |
 
 Both shapes ship in this repo. Do not mix: serverless + SQLite will lose data.
 
@@ -81,10 +81,20 @@ ignored — do not rely on the fallback in production.
 
 - **Shape A (SQLite):** mount a volume, set `DATABASE_URL=file:/app/data/prod.db`,
   run `npx prisma migrate deploy && npm start`. Backups = copy the volume file.
-- **Shape B (Postgres):** set `DATABASE_URL=postgresql://…`,
-  run `npm run db:pg:push` against the fresh database (schema-first; no SQLite
-  migration history applies), then deploy. The Prisma schema has no
-  SQLite-specific types, so no other changes are required.
+- **Shape B (Postgres):** production uses `prisma/postgres/schema.prisma`
+  with its own versioned migrations in `prisma/postgres/migrations/`.
+
+  ```bash
+  npm run db:pg:deploy     # apply migrations (idempotent; run on every release)
+  npm run db:pg:generate   # generate the PostgreSQL Prisma client
+  ```
+
+  Set the host **Build Command** to `npm run db:pg:generate && npx next build`
+  so the deployed bundle contains the PostgreSQL client engine (the SQLite and
+  PostgreSQL clients use different query engines).
+
+  The application code is provider-agnostic (no raw SQL); local development
+  keeps using SQLite by regenerating with `npx prisma generate`.
 
 ## 6. Billing (Stripe) — [HUMAN]
 

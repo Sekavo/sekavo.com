@@ -3,6 +3,8 @@
 # Usage: BASE=http://localhost:3000 ./scripts/smoke.sh
 set -e
 BASE="${BASE:-http://localhost:3000}"
+source "$(dirname "$0")/env.sh"
+export DATABASE_URL="$TEST_DATABASE_URL"
 DB="${DB:-prisma/dev.db}"
 PASS=0; FAIL=0
 check() { # name expected actual
@@ -28,7 +30,7 @@ INV_ID=$(echo "$INV" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 [ -n "$INV_ID" ] && check "invoice created" ok ok || check "invoice created" id "MISSING"
 
 # 4. Tick sends catch-up email (console sink writes outbound_email_logs)
-curl -s -X POST "$BASE/api/cron/tick?secret=$CRON_SECRET" > /dev/null 2>&1 || true
+curl -s -X POST "$BASE/api/cron/tick?secret=$TEST_CRON_SECRET" > /dev/null 2>&1 || true
 
 # 5. Mark paid cancels pendings
 curl -s -b /tmp/smoke.txt -X PATCH $BASE/api/invoices/$INV_ID -H "Content-Type: application/json" -d '{"status":"paid"}' > /dev/null

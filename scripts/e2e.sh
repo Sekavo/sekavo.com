@@ -4,6 +4,8 @@
 # controls exactly when chases fire. Usage: ./scripts/e2e.sh
 set -e
 cd "$(dirname "$0")/.."
+source scripts/env.sh
+export DATABASE_URL="$TEST_DATABASE_URL"
 PORT=3100
 BASE="http://localhost:$PORT"
 DB="prisma/dev.db"
@@ -67,7 +69,7 @@ CANCELLED_ON_EDIT=$(sql "SELECT COUNT(*) FROM scheduled_emails WHERE invoiceId='
 echo "— Time passes; the +7 nudge reaches its send moment —"
 sql "UPDATE scheduled_emails SET plannedFor=1000000000000 WHERE invoiceId='$INV_ID' AND status='pending' AND stepIndex=(SELECT MIN(stepIndex) FROM scheduled_emails WHERE invoiceId='$INV_ID' AND status='pending')"
 BEFORE_LOGS=$(sql "SELECT COUNT(*) FROM outbound_email_logs WHERE userId='$USER_ID' AND kind='chase'")
-curl -s -X POST "$BASE/api/cron/tick?secret=${CRON_SECRET:-dev-cron-secret}" > /dev/null
+curl -s -X POST "$BASE/api/cron/tick?secret=$TEST_CRON_SECRET" > /dev/null
 AFTER_LOGS=$(sql "SELECT COUNT(*) FROM outbound_email_logs WHERE userId='$USER_ID' AND kind='chase'")
 check "exactly one chase sent" 1 "$((AFTER_LOGS - BEFORE_LOGS))"
 BODY=$(sql "SELECT bodyText FROM outbound_email_logs WHERE userId='$USER_ID' AND kind='chase' ORDER BY sentAt DESC LIMIT 1")
@@ -80,7 +82,7 @@ echo "$SUBJ" | grep -E -qi "nudge|following up" && check "tone matches lateness 
 echo "— Customer replies; sequence must pause —"
 INBOUND_DOMAIN=$(grep INBOUND_DOMAIN .env | cut -d'"' -f2)
 PAYLOAD='{"to":["reply+'"$USER_ID"'@'"${INBOUND_DOMAIN:-inbox.sekavo.com}"'"],"from":"Billing <billing@lumen.example>","subject":"Re: MC-2087","text":"Hi Maya — approved this morning, payment runs Friday."}'
-curl -s -X POST $BASE/api/webhooks/inbound-email -H "x-webhook-secret: dev-inbound-secret" -H 'Content-Type: application/json' -d "$PAYLOAD" > /dev/null
+curl -s -X POST $BASE/api/webhooks/inbound-email -H "x-webhook-secret: $TEST_INBOUND_SECRET" -H 'Content-Type: application/json' -d "$PAYLOAD" > /dev/null
 REPLIES=$(sql "SELECT COUNT(*) FROM conversation_events WHERE type='reply_received' AND invoiceId='$INV_ID'")
 check "reply logged once" 1 "$REPLIES"
 SNOOZED=$(sql "SELECT COUNT(*) FROM scheduled_emails WHERE invoiceId='$INV_ID' AND status='pending' AND plannedFor/1000 > strftime('%s','now')+172800")
@@ -90,7 +92,7 @@ OWNER_NOTE=$(sql "SELECT COUNT(*) FROM outbound_email_logs WHERE userId='$USER_I
 
 echo "— Duplicate webhook delivery is ignored —"
 BEFORE_EVENTS=$(sql "SELECT COUNT(*) FROM conversation_events WHERE invoiceId='$INV_ID'")
-curl -s -X POST $BASE/api/webhooks/inbound-email -H "x-webhook-secret: dev-inbound-secret" -H 'Content-Type: application/json' -d "$PAYLOAD" > /dev/null
+curl -s -X POST $BASE/api/webhooks/inbound-email -H "x-webhook-secret: $TEST_INBOUND_SECRET" -H 'Content-Type: application/json' -d "$PAYLOAD" > /dev/null
 AFTER_EVENTS=$(sql "SELECT COUNT(*) FROM conversation_events WHERE invoiceId='$INV_ID'")
 check "replay adds no events" "$BEFORE_EVENTS" "$AFTER_EVENTS"
 
